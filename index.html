@@ -135,7 +135,7 @@
 <!-- LOBBY -->
 <div id="lobby" class="screen active">
   <div class="logo">HBT</div>
-  <div class="tagline">Hot Build Tournament · Victoria</div>
+  <div class="tagline">Hand Brake Turn · The Game</div>
   <div class="card-box" id="join-box">
     <input type="text" id="player-name" placeholder="Your name" maxlength="16">
     <button class="btn btn-primary" onclick="createRoom()">Create Room</button>
@@ -656,15 +656,15 @@ function renderGame(data) {
   const myPick = data.picks && data.picks[state.playerId] && data.picks[state.playerId][round];
 
 
-  // Host checks allPicked on every Firebase update
-  if (state.isHost && !state.advancing) {
-    const picks = data.picks || {};
-    const allPicked = data.playerOrder.every(pid => picks[pid] && picks[pid][round] !== undefined);
-    if (allPicked) {
-      state.advancing = true;
-      advanceRound(data).then(() => { state.advancing = false; });
-      return;
-    }
+  // Every client checks allPicked — host fires advanceRound
+  const picksNow = data.picks || {};
+  const allPicked = data.playerOrder.every(pid => picksNow[pid] && picksNow[pid][round] !== undefined);
+  const amHost = state.isHost || (data.host === state.playerId);
+  if (allPicked && amHost && !state.advancing) {
+    state.advancing = true;
+    setTimeout(() => { state.advancing = false; }, 3000);
+    advanceRound(data);
+    return;
   }
   // Render available cards for this round
   const poolKey = roundDef.pool;
@@ -783,7 +783,7 @@ async function advanceRound(data) {
   // Guard: re-fetch to confirm round hasn't already advanced
   const guardSnap = await get(roomRef());
   const guardData = guardSnap.val();
-  if (!guardData || guardData.round !== round || guardData.status !== 'playing') return;
+  if (!guardData || guardData.round !== round) return;
   const roundDef = ROUNDS[round];
 
   // Remove picked cards from pile
