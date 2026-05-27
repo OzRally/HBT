@@ -1893,6 +1893,11 @@ window.buyPowerCard = async function() {
 };
 
 // ── SPLASH ────────────────────────────────────────────────────────────────
+window.addEventListener('error', () => {
+  const s = document.getElementById('splash');
+  if (s) s.style.display = 'none';
+});
+
 window.addEventListener('load', () => {
   // Check for saved session
   const saved = localStorage.getItem('hbt_session');
@@ -1907,10 +1912,13 @@ window.addEventListener('load', () => {
       }
     } catch(e) {}
   }
-  setTimeout(() => {
-    document.getElementById('splash').classList.add('hide');
-    setTimeout(() => { document.getElementById('splash').style.display = 'none'; }, 500);
-  }, 1800);
+  function hideSplash() {
+    const s = document.getElementById('splash');
+    if (s) { s.classList.add('hide'); setTimeout(() => { s.style.display = 'none'; }, 400); }
+  }
+  setTimeout(hideSplash, 800);
+  // Safety: always dismiss after 3s no matter what
+  setTimeout(hideSplash, 3000);
 });
 
 // ── REJOIN ────────────────────────────────────────────────────────────────
