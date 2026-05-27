@@ -211,6 +211,37 @@
   .modal-stat-val.neg{color:var(--red)}
   .modal-btns{display:flex;gap:.75rem}
 
+
+  /* ── BUILD VIEWER ── */
+  .build-viewer{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:400;display:flex;flex-direction:column;animation:fadeIn .2s ease}
+  .build-viewer.hidden{display:none}
+  .bv-header{background:var(--dark2);border-bottom:1px solid var(--dark4);padding:1rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+  .bv-player{font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:700;color:var(--orange)}
+  .bv-budget{font-size:.9rem;color:var(--muted)}
+  .bv-cards{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.75rem}
+  .bv-card{background:var(--dark2);border:1px solid var(--dark4);border-radius:var(--radius);padding:.75rem 1rem;display:flex;gap:.75rem;align-items:flex-start}
+  .bv-card-icon{font-size:1.5rem;flex-shrink:0;margin-top:.1rem}
+  .bv-card-body{flex:1}
+  .bv-card-type{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .bv-card-name{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:700;color:var(--text)}
+  .bv-card-stats{display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.3rem}
+  .bv-stats-total{background:var(--dark3);border-radius:8px;padding:.75rem 1rem;margin-top:.5rem}
+  .bv-total-row{display:flex;justify-content:space-between;font-size:.9rem;padding:.2rem 0;border-bottom:1px solid var(--dark4)}
+  .bv-total-row:last-child{border-bottom:none;font-weight:700;color:var(--orange);font-family:'Barlow Condensed',sans-serif;font-size:1.1rem}
+  .bv-footer{background:var(--dark2);border-top:1px solid var(--dark4);padding:1rem;display:flex;gap:.75rem;flex-shrink:0}
+
+  /* ── VOTE UI ── */
+  .vote-player-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem}
+  .vote-player-card{background:var(--dark2);border:1.5px solid var(--dark4);border-radius:var(--radius);padding:.75rem;cursor:pointer;text-align:center;transition:all .15s;position:relative}
+  .vote-player-card:hover{border-color:var(--orange);transform:translateY(-2px)}
+  .vote-player-card.voted{border-color:var(--orange);background:rgba(216,90,48,.1)}
+  .vote-player-card.self{opacity:.4;cursor:not-allowed}
+  .vpc-name{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:700;color:var(--text)}
+  .vpc-pts{font-size:.8rem;color:var(--muted);margin-top:.2rem}
+  .vpc-check{position:absolute;top:.4rem;right:.4rem;color:var(--orange);font-size:1rem;display:none}
+  .vote-player-card.voted .vpc-check{display:block}
+  .view-build-btn{font-size:.75rem;color:var(--blue);background:none;border:none;cursor:pointer;font-family:'Barlow',sans-serif;margin-top:.3rem;text-decoration:underline}
+
   @media(min-width:600px){
     .cards-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
     .logo{font-size:7rem}
@@ -226,6 +257,20 @@
   <div class="splash-logo">HBT</div>
   <div class="splash-sub">Hot Build Tournament · Victoria</div>
   <div class="splash-loader"><div class="splash-loader-bar"></div></div>
+</div>
+
+
+<!-- BUILD VIEWER -->
+<div class="build-viewer hidden" id="build-viewer">
+  <div class="bv-header">
+    <div>
+      <div class="bv-player" id="bv-player-name"></div>
+      <div class="bv-budget" id="bv-budget"></div>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="closeBuildViewer()">✕ Close</button>
+  </div>
+  <div class="bv-cards" id="bv-cards"></div>
+  <div class="bv-footer" id="bv-footer"></div>
 </div>
 
 <!-- CARD DETAIL MODAL -->
@@ -334,19 +379,21 @@
     <div class="round-badge">POWER CARD</div>
     <div class="budget-display" id="power-budget"></div>
   </div>
-  <div class="waiting-overlay">
+  <div class="waiting-overlay" style="overflow-y:auto;padding:1rem">
     <div class="power-section" style="max-width:360px;width:100%">
-      <div class="power-title">⚡ Buy a Power Card?</div>
-      <div style="color:var(--muted);font-size:.9rem;margin-bottom:1rem">Costs $2,500 — blind draw. Could be amazing or useless.</div>
-      <div id="power-card-reveal" style="display:none;margin-bottom:1rem">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;font-weight:700;color:var(--gold)" id="pc-name"></div>
+      <div class="power-title">⚡ Power Cards</div>
+      <div style="color:var(--muted);font-size:.9rem;margin-bottom:.5rem">Each costs $2,500 — blind draw. Buy as many as you can afford.</div>
+      <div id="power-cards-bought" style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem"></div>
+      <div id="power-card-reveal" style="display:none;background:var(--dark3);border:1px solid var(--gold);border-radius:8px;padding:.75rem;margin-bottom:1rem;animation:fadeIn .3s ease">
+        <div style="font-size:.7rem;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:.25rem">You got:</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:700;color:var(--gold)" id="pc-name"></div>
         <div style="font-size:.85rem;color:var(--muted);margin-top:.25rem" id="pc-desc"></div>
       </div>
       <div style="display:flex;gap:.75rem;justify-content:center" id="power-btns">
-        <button class="btn btn-primary" onclick="buyPowerCard()">Buy ($2,500)</button>
-        <button class="btn btn-secondary" onclick="skipPowerCard()">Skip</button>
+        <button class="btn btn-primary" id="power-buy-btn" onclick="buyPowerCard()">Buy ($2,500)</button>
+        <button class="btn btn-secondary" onclick="skipPowerCard()">Done — No More</button>
       </div>
-      <div id="power-waiting" style="display:none;color:var(--muted);font-size:.9rem">Waiting for all players...</div>
+      <div id="power-waiting" style="display:none;color:var(--muted);font-size:.9rem;text-align:center;margin-top:.5rem">Waiting for others...</div>
     </div>
   </div>
 </div>
@@ -804,7 +851,7 @@ function renderGame(data) {
   const poolKey = roundDef.pool;
   let poolIds = data.piles[poolKey] || [];
   const numPlayers = data.numPlayers;
-  const dealSize = Math.min(numPlayers + 2, poolIds.length);
+  const dealSize = poolIds.length; // show all available cards
   const roundCardIds = poolIds.slice(0, dealSize);
 
   // Track taken cards
@@ -946,7 +993,7 @@ async function advanceRound(data) {
   // Remove picked cards from pile
   const poolKey = roundDef.pool;
   const numPlayers = data.numPlayers;
-  const dealSize = Math.min(numPlayers + 2, (data.piles[poolKey]||[]).length);
+  const dealSize = (data.piles[poolKey]||[]).length; // use all cards
   const pickedThisRound = Object.values(data.picks).map(p => p[round]).filter(Boolean);
   const newPile = (data.piles[poolKey]||[]).slice(dealSize);
 
@@ -1099,16 +1146,32 @@ function renderPowerScreen(data) {
   showScreen('power-screen');
   const myBudget = data.playerBudgets[state.playerId] || 0;
   document.getElementById('power-budget').textContent = fmt(myBudget);
-  const alreadyDecided = data.powerDecisions && data.powerDecisions[state.playerId] !== undefined;
-  if (alreadyDecided) {
+  // Update buy button state
+  const buyBtn = document.getElementById('power-buy-btn');
+  if (buyBtn) {
+    const canAfford = myBudget >= 2500;
+    const hasPower = (data.piles.power||[]).length > 0;
+    buyBtn.disabled = !canAfford || !hasPower;
+    buyBtn.textContent = !canAfford ? "Can't Afford" : !hasPower ? 'None Left' : 'Buy ($2,500)';
+  }
+  const done = data.powerDecisions && data.powerDecisions[state.playerId] && data.powerDecisions[state.playerId].done;
+  if (done) {
     document.getElementById('power-btns').style.display = 'none';
     document.getElementById('power-waiting').style.display = 'block';
-    const decided = Object.keys(data.powerDecisions||{}).length;
-    document.getElementById('power-waiting').textContent = `Waiting... (${decided}/${data.numPlayers} decided)`;
-    // Check if all decided
+    const decided = Object.values(data.powerDecisions||{}).filter(d => d.done).length;
+    document.getElementById('power-waiting').textContent = `Waiting... (${decided}/${data.numPlayers} done)`;
     if (decided >= data.numPlayers && state.isHost) {
       finaliseResults(data);
     }
+  }
+  // Render cards bought so far
+  const myBought = (data.powerDecisions && data.powerDecisions[state.playerId] && data.powerDecisions[state.playerId].cards) || [];
+  const boughtEl = document.getElementById('power-cards-bought');
+  if (boughtEl && myBought.length > 0) {
+    boughtEl.innerHTML = myBought.map(cid => {
+      const pc = POWER_CARDS.find(p => p.id === cid);
+      return pc ? `<div style="background:var(--dark3);border:1px solid var(--dark4);border-radius:6px;padding:.5rem .75rem;font-size:.85rem"><span style="color:var(--gold);font-weight:600">${pc.name}</span><span style="color:var(--muted);font-size:.75rem;display:block">${pc.desc}</span></div>` : '';
+    }).join('');
   }
 }
 
@@ -1116,11 +1179,13 @@ window.buyPowerCard = async function() {
   const data = state.gameData;
   const myBudget = data.playerBudgets[state.playerId];
   if (myBudget < 2500) { toast("Not enough money!"); return; }
-  const cardId = data.piles.power[0];
-  const card = POWER_CARDS.find(c => c.id === cardId);
-  if (!card) { skipPowerCard(); return; }
+  const powerPile = data.piles.power || [];
+  if (powerPile.length === 0) { toast("No power cards left!"); return; }
+  const cardId = powerPile[0];
+  const card = POWER_CARDS.find(pc => pc.id === cardId);
+  if (!card) { toast("Error drawing card"); return; }
 
-  // Apply power card effects to local state
+  // Apply effects
   if (card.cashBonus) state.powerCash = (state.powerCash||0) + card.cashBonus;
   if (card.acc) state.myStatMods.acc = (state.myStatMods.acc||0) + card.acc;
   if (card.top) state.myStatMods.top = (state.myStatMods.top||0) + card.top;
@@ -1130,26 +1195,30 @@ window.buyPowerCard = async function() {
   if (card.fuel) state.myStatMods.fuel = (state.myStatMods.fuel||0) + card.fuel;
   if (card.looksVotes) state.powerCardLooksBonus = (state.powerCardLooksBonus||0) + card.looksVotes;
 
+  // Show reveal
   document.getElementById('pc-name').textContent = card.name;
   document.getElementById('pc-desc').textContent = card.desc;
   document.getElementById('power-card-reveal').style.display = 'block';
-  document.getElementById('power-btns').style.display = 'none';
 
   const newBudget = myBudget - 2500 + (card.cashBonus||0);
-  await update(roomRef(), {
-    [`powerDecisions/${state.playerId}`]: {bought: true, cardId, powerCash: state.powerCash||0},
-    [`playerBudgets/${state.playerId}`]: newBudget,
-    [`piles/power`]: (data.piles.power||[]).slice(1),
-  });
+  const prevDecision = (data.powerDecisions && data.powerDecisions[state.playerId]) || {cards:[], done:false};
+  const newCards = [...(prevDecision.cards||[]), cardId];
 
-  setTimeout(() => { document.getElementById('power-waiting').style.display = 'block'; }, 1500);
+  await update(roomRef(), {
+    [`powerDecisions/${state.playerId}`]: {cards: newCards, done: false},
+    [`playerBudgets/${state.playerId}`]: newBudget,
+    [`piles/power`]: powerPile.slice(1),
+  });
+  toast(`Got: ${card.name}!`);
 };
 
 window.skipPowerCard = async function() {
   document.getElementById('power-btns').style.display = 'none';
   document.getElementById('power-waiting').style.display = 'block';
+  const data = state.gameData;
+  const prevDecision = (data.powerDecisions && data.powerDecisions[state.playerId]) || {cards:[]};
   await update(roomRef(), {
-    [`powerDecisions/${state.playerId}`]: {bought: false},
+    [`powerDecisions/${state.playerId}`]: {cards: prevDecision.cards||[], done: true},
   });
 };
 
@@ -1225,12 +1294,10 @@ function renderResults(data) {
   if (!data.scores) return;
 
   const playerIds = data.playerOrder;
-  // Confetti for winner
   if (!state.confettiFired) { state.confettiFired = true; launchConfetti(); }
   const content = document.getElementById('results-content');
   const votePanels = document.getElementById('vote-panels');
 
-  // Calculate totals including votes
   const scores = JSON.parse(JSON.stringify(data.scores));
   const looksVotes = data.looksVotes || {};
   const creativityVotes = data.creativityVotes || {};
@@ -1246,10 +1313,10 @@ function renderResults(data) {
   });
 
   const sorted = [...playerIds].sort((a,b) => scores[b].total - scores[a].total);
-
   const winnerId = sorted[0];
   const winnerName = data.players[winnerId]?.name || 'Winner';
   const winnerScore = scores[winnerId].total.toFixed(2);
+
   content.innerHTML = `<div class="winner-banner">
     <div style="font-size:2rem">🏆</div>
     <div class="winner-name">${winnerName} wins!</div>
@@ -1259,10 +1326,13 @@ function renderResults(data) {
     const pname = data.players[pid]?.name || pid;
     const isWinner = i === 0;
     return `<div class="score-card ${isWinner?'winner':''}">
-      <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">
         <div class="score-player">${isWinner?'<span class="crown">👑</span>':''}${pname}</div>
         <div class="score-total">${s.total.toFixed(2)}</div>
       </div>
+      <button onclick="viewBuild('${pid}')" style="background:var(--dark3);border:1px solid var(--dark4);border-radius:6px;padding:.4rem .8rem;color:var(--orange);font-family:'Barlow Condensed',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;width:100%;margin-bottom:.5rem;letter-spacing:.5px">
+        🔍 VIEW ${pname.toUpperCase()}'S BUILD
+      </button>
       <div class="score-breakdown">
         <div class="score-line"><span>Build Points</span><span>${s.buildPts.toFixed(2)}</span></div>
         <div class="score-line"><span>HP Bonus</span><span>+${s.hpBonus}</span></div>
@@ -1277,50 +1347,159 @@ function renderResults(data) {
     </div>`;
   }).join('');
 
-  // Voting panels (only if voting still open)
+  // ── VOTING SECTION ──
   if (data.votingOpen) {
     const myLooksVote = looksVotes[state.playerId];
     const myCreativityVote = creativityVotes[state.playerId];
+    const bothVoted = myLooksVote && myCreativityVote;
 
     votePanels.innerHTML = `
-      <div class="vote-section">
-        <div class="vote-title">🎨 Looks Vote (+2)</div>
-        <div class="vote-options">
-          ${playerIds.filter(pid => pid !== state.playerId).map(pid => `
-            <div class="vote-option ${myLooksVote===pid?'voted':''}" onclick="castVote('looks','${pid}')">
-              ${data.players[pid]?.name || pid}
-              ${myLooksVote===pid?' ✓':''}
-            </div>
-          `).join('')}
-        </div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:700;color:var(--text);margin-bottom:.75rem;margin-top:.5rem">
+        CAST YOUR VOTES
       </div>
-      <div class="vote-section">
-        <div class="vote-title">💡 Creativity Vote (+3)</div>
-        <div class="vote-options">
-          ${playerIds.filter(pid => pid !== state.playerId).map(pid => `
-            <div class="vote-option ${myCreativityVote===pid?'voted':''}" onclick="castVote('creativity','${pid}')">
-              ${data.players[pid]?.name || pid}
-              ${myCreativityVote===pid?' ✓':''}
-            </div>
-          `).join('')}
-        </div>
+      <div style="font-size:.85rem;color:var(--muted);margin-bottom:1rem">
+        Tap a player card to view their full build, then vote. You can't vote for yourself.
       </div>
-    `;
 
-    if (myLooksVote && myCreativityVote) {
-      votePanels.innerHTML += `<div style="text-align:center;color:var(--green);margin-top:1rem;font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;font-weight:700">Votes submitted ✓</div>`;
-    }
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--orange);margin-bottom:.5rem">🎨 LOOKS VOTE +2</div>
+      <div class="vote-player-grid">
+        ${playerIds.map(pid => {
+          const pname = data.players[pid]?.name || pid;
+          const isSelf = pid === state.playerId;
+          const isVoted = myLooksVote === pid;
+          return `<div class="vote-player-card ${isSelf?'self':''} ${isVoted?'voted':''}" onclick="${isSelf?'':'castVote(\'looks\',\''+pid+'\')'}">
+            <div class="vpc-check">✓</div>
+            <div class="vpc-name">${pname}</div>
+            <div class="vpc-pts">${isSelf?'(you)':''}</div>
+            ${!isSelf ? `<button class="view-build-btn" onclick="event.stopPropagation();viewBuild('${pid}')">View build</button>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--orange);margin-bottom:.5rem;margin-top:1rem">💡 CREATIVITY VOTE +3</div>
+      <div class="vote-player-grid">
+        ${playerIds.map(pid => {
+          const pname = data.players[pid]?.name || pid;
+          const isSelf = pid === state.playerId;
+          const isVoted = myCreativityVote === pid;
+          return `<div class="vote-player-card ${isSelf?'self':''} ${isVoted?'voted':''}" onclick="${isSelf?'':'castVote(\'creativity\',\''+pid+'\')'}">
+            <div class="vpc-check">✓</div>
+            <div class="vpc-name">${pname}</div>
+            <div class="vpc-pts">${isSelf?'(you)':''}</div>
+            ${!isSelf ? `<button class="view-build-btn" onclick="event.stopPropagation();viewBuild('${pid}')">View build</button>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+
+      ${bothVoted
+        ? `<div style="text-align:center;color:var(--green);margin-top:1rem;font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;font-weight:700">✓ Votes submitted!</div>`
+        : `<div style="text-align:center;color:var(--muted);margin-top:.5rem;font-size:.85rem">Select one player for each category</div>`
+      }
+    `;
   } else {
     votePanels.innerHTML = '';
   }
 }
 
+// ── BUILD VIEWER ───────────────────────────────────────────────────────────
+const ROUND_TYPES = ['Chassis','Engine','Tuning','Drivetrain','Handling','Bonus','Cosmetic'];
+const BV_ICONS = {Chassis:'🚗',Engine:'⚙️',Tuning:'🔧',Drivetrain:'🔄',Handling:'🛞',Bonus:'⭐',Cosmetic:'✨'};
+
+window.viewBuild = function(pid) {
+  const data = state.gameData;
+  if (!data || !data.scores) return;
+  const pname = data.players[pid]?.name || pid;
+  const budget = data.playerBudgets[pid] || 0;
+  const picks = (data.picks && data.picks[pid]) || {};
+
+  document.getElementById('bv-player-name').textContent = pname + "'s Build";
+  document.getElementById('bv-budget').textContent = `Budget left: ${fmt(budget)} · ${data.scores[pid]?.hasIllegal ? '🔴 Has illegal mods' : '🟢 Roadworthy'}`;
+
+  const stats = {acc:0,top:0,hand:0,brake:0,rel:0,fuel:0,hp:0};
+  const cardsHtml = ROUND_TYPES.map((type, i) => {
+    const cardId = picks[i];
+    if (!cardId) return '';
+    const card = getCard(cardId);
+    if (!card) return '';
+    // Accumulate stats
+    stats.acc += card.acc||0; stats.top += card.top||0;
+    stats.hand += card.hand||0; stats.brake += card.brake||0;
+    stats.rel += card.rel||0; stats.fuel += card.fuel||0;
+    stats.hp += card.hp||0;
+
+    const statPills = ['acc','top','hand','brake','rel','fuel'].map((s,si) => {
+      const v = card[s];
+      if (v === 0) return '';
+      const cls = v > 0 ? 'stat-pos' : 'stat-neg';
+      const labels = ['Acc','Top','Hand','Brake','Rel','Fuel'];
+      return `<span class="stat-pill ${cls}">${labels[si]} ${v>0?'+':''}${v}</span>`;
+    }).join('');
+
+    return `<div class="bv-card">
+      <div class="bv-card-icon">${BV_ICONS[type] || '🔧'}</div>
+      <div class="bv-card-body">
+        <div class="bv-card-type">${type} · ${card.cost ? fmt(card.cost) : 'FREE'} ${card.legal===false?'🔴':''}</div>
+        <div class="bv-card-name">${card.name}</div>
+        <div style="font-size:.75rem;color:var(--muted);margin:.2rem 0">${card.desc}</div>
+        <div class="bv-card-stats">${statPills}${card.hp ? `<span class="stat-pill stat-pos">⚡${card.hp}HP</span>` : ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const buildPts = +(stats.acc+stats.top+stats.hand+stats.brake+stats.rel+stats.fuel).toFixed(2);
+
+  document.getElementById('bv-cards').innerHTML = cardsHtml + `
+    <div class="bv-stats-total">
+      <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem">Total Stats</div>
+      ${[['Acceleration',stats.acc],['Top Speed',stats.top],['Handling',stats.hand],['Braking',stats.brake],['Reliability',stats.rel],['Fuel Economy',stats.fuel]].map(([l,v]) =>
+        `<div class="bv-total-row"><span>${l}</span><span style="color:${v>0?'var(--green)':v<0?'var(--red)':'var(--muted)'}">${v>0?'+':''}${v.toFixed(2)}</span></div>`
+      ).join('')}
+      <div class="bv-total-row"><span>Horsepower</span><span style="color:var(--gold)">⚡ ${stats.hp} HP</span></div>
+      <div class="bv-total-row"><span>BUILD POINTS</span><span>${buildPts}</span></div>
+    </div>`;
+
+  // Footer: vote buttons if it's not your own build
+  const footer = document.getElementById('bv-footer');
+  if (pid !== state.playerId && data.votingOpen) {
+    const lv = (data.looksVotes||{})[state.playerId] === pid;
+    const cv = (data.creativityVotes||{})[state.playerId] === pid;
+    footer.innerHTML = `
+      <button class="btn ${lv?'btn-primary':'btn-secondary'} btn-sm" style="flex:1" onclick="castVoteFromViewer('looks','${pid}')">
+        ${lv?'✓ Looks Voted':'🎨 Looks Vote +2'}
+      </button>
+      <button class="btn ${cv?'btn-primary':'btn-secondary'} btn-sm" style="flex:1" onclick="castVoteFromViewer('creativity','${pid}')">
+        ${cv?'✓ Creativity Voted':'💡 Creativity +3'}
+      </button>`;
+  } else {
+    footer.innerHTML = pid === state.playerId
+      ? `<div style="color:var(--muted);font-size:.9rem;text-align:center;flex:1">This is your build</div>`
+      : `<div style="color:var(--muted);font-size:.9rem;text-align:center;flex:1">Voting closed</div>`;
+  }
+
+  document.getElementById('build-viewer').classList.remove('hidden');
+};
+
+window.closeBuildViewer = function() {
+  document.getElementById('build-viewer').classList.add('hidden');
+};
+
+window.castVoteFromViewer = async function(type, pid) {
+  await castVoteInternal(type, pid);
+  // Refresh footer
+  viewBuild(pid);
+  toast('Vote cast!');
+};
+
 window.castVote = async function(type, targetPid) {
+  await castVoteInternal(type, targetPid);
+  toast('Vote cast!');
+};
+
+async function castVoteInternal(type, targetPid) {
   const updates = {};
   updates[`${type}Votes/${state.playerId}`] = targetPid;
   await update(roomRef(), updates);
-  toast('Vote cast!');
-};
+}
 
 // ── SPLASH ────────────────────────────────────────────────────────────────
 window.addEventListener('load', () => {
