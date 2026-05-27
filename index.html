@@ -309,14 +309,20 @@
 
 
   <!-- STATS PANEL -->
-  <div id="stats-panel" style="background:var(--dark2);border-top:1px solid var(--dark4);padding:.6rem 1rem;flex-shrink:0;display:none">
+  <div id="stats-panel" style="display:none;background:var(--dark2);border-top:1px solid var(--dark4);padding:.6rem 1rem;flex-shrink:0">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase">My Stats</div>
-      <div style="font-size:.75rem;color:var(--orange);font-weight:700" id="stats-buildpts"></div>
+      <div style="font-size:.8rem;color:var(--orange);font-weight:700;font-family:'Barlow Condensed',sans-serif" id="stats-buildpts"></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:.3rem" id="stats-grid"></div>
   </div>
-
+  <div id="stats-panel" style="display:none;background:var(--dark2);border-top:1px solid var(--dark4);padding:.6rem 1rem;flex-shrink:0">
+    <div style="display:flex;justify-content:space-between;margin-bottom:.4rem">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px">My Stats</div>
+      <div style="font-size:.8rem;color:var(--orange);font-weight:700;font-family:'Barlow Condensed',sans-serif" id="stats-buildpts"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:.3rem" id="stats-grid"></div>
+  </div>
   <!-- Waiting for others -->
   <div class="waiting-overlay" id="waiting-overlay" style="display:none">
     <div class="spinner"></div>
@@ -609,15 +615,15 @@ const POWER_CARDS = [
 
 // ── GAME STATE ───────────────────────────────────────────────────────────────
 const ROUNDS = [
-  {type:"Chassis",     label:"Choose your Chassis",         pool:"Chassis"},
-  {type:"Engine",      label:"Choose your Engine",          pool:"Engine"},
-  {type:"Chassis Mod", label:"Choose a Chassis Mod",        pool:"Handling", event:true},
-  {type:"Tuning",      label:"Choose Engine Upgrade",       pool:"Tuning",   event:true},
-  {type:"Drivetrain",  label:"Choose Drivetrain Upgrade",   pool:"Drivetrain",event:true},
-  {type:"Handling",    label:"Choose Handling Upgrade",     pool:"Handling", event:true},
-  {type:"Brake Upgrade",label:"Choose Brake Upgrade",       pool:"Handling", event:true},
-  {type:"Bonus",       label:"Choose Bonus Upgrade (any)",  pool:"bonus",    event:true},
-  {type:"Cosmetic",    label:"Add Cosmetics (pick freely)", pool:"Cosmetic", event:"dice", multi:true},
+  {type:"Chassis",      label:"Choose your Chassis",         pool:"Chassis"},
+  {type:"Engine",       label:"Choose your Engine",          pool:"Engine"},
+  {type:"Chassis Mod",  label:"Choose a Chassis Mod",        pool:"Handling",  event:true},
+  {type:"Tuning",       label:"Choose Engine Upgrade",       pool:"Tuning",    event:true},
+  {type:"Drivetrain",   label:"Choose Drivetrain Upgrade",   pool:"Drivetrain",event:true},
+  {type:"Handling",     label:"Choose Handling Upgrade",     pool:"Handling",  event:true},
+  {type:"Brake Upgrade",label:"Choose Brake Upgrade",        pool:"Handling",  event:true},
+  {type:"Bonus",        label:"Choose Bonus Upgrade (any)",  pool:"bonus",     event:true},
+  {type:"Cosmetic",     label:"Add Cosmetics (pick freely)", pool:"Cosmetic",  event:"dice", multi:true},
 ];
 
 let state = {
@@ -796,7 +802,7 @@ function renderGame(data) {
   const myBudget = data.playerBudgets[state.playerId] || 75000;
   const budgetEl = document.getElementById('budget-display');
   budgetEl.textContent = fmt(myBudget);
-  budgetEl.className = 'budget-display' + (myBudget < 8000 ? ' critical' : myBudget < 20000 ? ' low' : '');
+  budgetEl.className = 'budget-display' + (myBudget < 5000 ? ' critical' : myBudget < 15000 ? ' low' : '');
   updateProgress(round);
   saveSession();
 
@@ -804,9 +810,18 @@ function renderGame(data) {
   const myPick = data.picks && data.picks[state.playerId] && data.picks[state.playerId][round];
 
 
-  // Every client checks allPicked — host fires advanceRound
+  const isMulti = roundDef && roundDef.multi;
+  const myPickRaw = data.picks && data.picks[state.playerId] && data.picks[state.playerId][round];
+  const myDoneMulti = isMulti && Array.isArray(myPickRaw) && myPickRaw.includes('__done__');
+  const myPick = isMulti ? myDoneMulti : myPickRaw;
+
+  // Host checks allPicked on every update
   const picksNow = data.picks || {};
-  const allPicked = data.playerOrder.every(pid => picksNow[pid] && picksNow[pid][round] !== undefined);
+  const allPicked = data.playerOrder.every(pid => {
+    const v = picksNow[pid] && picksNow[pid][round];
+    if (isMulti) return Array.isArray(v) && v.includes('__done__');
+    return v !== undefined && v !== null;
+  });
   const amHost = state.isHost || (data.host === state.playerId);
   if (allPicked && amHost && !state.advancing) {
     state.advancing = true;
@@ -814,51 +829,74 @@ function renderGame(data) {
     advanceRound(data);
     return;
   }
-  // Render available cards for this round
-  const poolKey = roundDef.pool;
-  let poolIds = data.piles[poolKey] || [];
-  const numPlayers = data.numPlayers;
-  const dealSize = Math.min(numPlayers + 2, poolIds.length);
-  const roundCardIds = poolIds.slice(0, dealSize);
 
-  // Track taken cards
+  const poolKey = roundDef.pool;
+  const poolIds = data.piles[poolKey] || [];
+  const roundCardIds = [...poolIds];
+  const numPlayers = data.numPlayers;
+
+  // Taken cards (single-pick only)
   const takenIds = new Set();
-  if (data.picks) {
-    Object.values(data.picks).forEach(playerPicks => {
-      if (playerPicks[round]) takenIds.add(playerPicks[round]);
+  if (!isMulti && data.picks) {
+    Object.values(data.picks).forEach(pp => {
+      const v = pp[round];
+      if (Array.isArray(v)) v.forEach(id => takenIds.add(id));
+      else if (v) takenIds.add(v);
     });
   }
 
   const grid = document.getElementById('cards-grid');
 
-  if (myPick) {
-    // Show waiting state
+  if (!isMulti && myPick) {
     grid.innerHTML = '';
     document.getElementById('waiting-overlay').style.display = 'flex';
-    const readyCount = Object.values(data.picks || {}).filter(p => p[round]).length;
+    const readyCount = Object.values(data.picks||{}).filter(p => p[round]).length;
     document.getElementById('wait-msg').textContent = `Waiting for others... (${readyCount}/${numPlayers} picked)`;
     renderBuildSlots(data);
+    renderStatsPanel(data);
+    return;
+  }
+
+  if (myDoneMulti) {
+    grid.innerHTML = '';
+    document.getElementById('waiting-overlay').style.display = 'flex';
+    const readyCount = Object.values(data.picks||{}).filter(p => {
+      const v = p[round]; return Array.isArray(v) && v.includes('__done__');
+    }).length;
+    document.getElementById('wait-msg').textContent = `Cosmetics locked. Waiting... (${readyCount}/${numPlayers} done)`;
+    renderBuildSlots(data);
+    renderStatsPanel(data);
     return;
   }
 
   document.getElementById('waiting-overlay').style.display = 'none';
 
-  // Check if event needs showing
   if (data.pendingEvent && data.pendingEvent.targetPlayer === state.playerId && !data.pendingEvent.resolved) {
     showEventOverlay(data.pendingEvent);
     return;
   }
 
+  const myCosmetics = isMulti ? (Array.isArray(myPickRaw) ? myPickRaw.filter(id => id !== '__done__') : []) : [];
+
   grid.innerHTML = roundCardIds.map(id => {
     const card = getCard(id);
     if (!card) return '';
-    const taken = takenIds.has(id);
+    const taken = isMulti ? myCosmetics.includes(id) : takenIds.has(id);
     const canAfford = myBudget >= card.cost;
     const disabled = taken || !canAfford;
     return renderCard(card, disabled, taken, !canAfford);
   }).join('');
 
+  if (isMulti) {
+    const n = myCosmetics.length;
+    grid.innerHTML += `<div style="grid-column:1/-1;padding:.75rem 0">
+      <div style="color:var(--muted);font-size:.85rem;margin-bottom:.5rem">You've picked ${n} cosmetic${n!==1?'s':''}. Pick more or tap Done.</div>
+      <button class="btn btn-primary" style="width:100%" onclick="doneMultiRound()">✓ Done — Lock In Cosmetics</button>
+    </div>`;
+  }
+
   renderBuildSlots(data);
+  renderStatsPanel(data);
 }
 
 const CARD_ICONS = {
@@ -912,16 +950,15 @@ function renderBuildSlots(data) {
   const myPicksAll = (data.picks && data.picks[state.playerId]) || {};
   const slotsEl = document.getElementById('build-slots');
   slotsEl.innerHTML = ROUNDS.map((r, i) => {
-    const pickedRaw = myPicksAll[i];
+    const v = myPicksAll[i];
     if (r.multi) {
-      const arr = Array.isArray(pickedRaw) ? pickedRaw.filter(id => id !== '__done__') : [];
-      const filled = arr.length > 0;
-      return `<div class="build-slot ${filled?'filled':''}">
+      const arr = Array.isArray(v) ? v.filter(id => id !== '__done__') : [];
+      return `<div class="build-slot ${arr.length?'filled':''}">
         <div class="slot-label">${r.type}</div>
-        <div class="slot-name">${filled ? arr.length + ' picked' : '—'}</div>
+        <div class="slot-name">${arr.length ? arr.length+' picked' : '—'}</div>
       </div>`;
     }
-    const card = pickedRaw ? getCard(pickedRaw) : null;
+    const card = v ? getCard(v) : null;
     return `<div class="build-slot ${card?'filled':''}">
       <div class="slot-label">${r.type}</div>
       <div class="slot-name">${card ? card.name : '—'}</div>
@@ -936,38 +973,21 @@ window.pickCard = async function(cardId) {
   const roundDef = ROUNDS[round];
   const card = getCard(cardId);
   const myBudget = data.playerBudgets[state.playerId];
-
-  if (myBudget < card.cost) { toast("Can't afford this!"); return; }
+  if (!card || myBudget < card.cost) { toast("Can't afford this!"); return; }
 
   if (roundDef.multi) {
-    // Multi-pick round (cosmetics) — add to array, don't advance
     const existing = (data.picks && data.picks[state.playerId] && data.picks[state.playerId][round]) || [];
-    const arr = Array.isArray(existing) ? existing : [existing];
-    // Check this card not already picked by this player
+    const arr = Array.isArray(existing) ? existing : [];
     if (arr.includes(cardId)) { toast("Already picked!"); return; }
-    // Check not taken by another player
-    const othersTaken = new Set();
-    if (data.picks) {
-      Object.entries(data.picks).forEach(([pid, pp]) => {
-        if (pid !== state.playerId) {
-          const v = pp[round];
-          if (Array.isArray(v)) v.forEach(id => othersTaken.add(id));
-          else if (v) othersTaken.add(v);
-        }
-      });
-    }
-    if (othersTaken.has(cardId)) { toast("Already taken!"); return; }
     const newArr = [...arr, cardId];
-    const newBudget = myBudget - card.cost;
     await update(roomRef(), {
       [`picks/${state.playerId}/${round}`]: newArr,
-      [`playerBudgets/${state.playerId}`]: newBudget,
+      [`playerBudgets/${state.playerId}`]: myBudget - card.cost,
     });
     toast(`Added: ${card.name}`);
     return;
   }
 
-  // Single-pick rounds
   const takenIds = new Set();
   if (data.picks) {
     Object.values(data.picks).forEach(p => {
@@ -978,27 +998,20 @@ window.pickCard = async function(cardId) {
   }
   if (takenIds.has(cardId)) { toast("Already taken!"); return; }
 
-  const newBudget = myBudget - card.cost;
-  const newHP = (data.playerHP[state.playerId] || 0) + (card.hp || 0);
-
-  const updates = {};
-  updates[`picks/${state.playerId}/${round}`] = cardId;
-  updates[`playerBudgets/${state.playerId}`] = newBudget;
-  updates[`playerHP/${state.playerId}`] = newHP;
-
-  await update(roomRef(), updates);
+  await update(roomRef(), {
+    [`picks/${state.playerId}/${round}`]: cardId,
+    [`playerBudgets/${state.playerId}`]: myBudget - card.cost,
+    [`playerHP/${state.playerId}`]: (data.playerHP[state.playerId]||0) + (card.hp||0),
+  });
 };
 
-// Done button for cosmetic multi-round
 window.doneMultiRound = async function() {
   const data = state.gameData;
   const round = data.round;
-  const myPicks = (data.picks && data.picks[state.playerId] && data.picks[state.playerId][round]) || [];
-  const arr = Array.isArray(myPicks) ? myPicks : (myPicks ? [myPicks] : []);
-  // Mark done with a special sentinel if no picks
-  const finalVal = arr.length > 0 ? arr : ['__done__'];
+  const cur = (data.picks && data.picks[state.playerId] && data.picks[state.playerId][round]) || [];
+  const arr = Array.isArray(cur) ? cur.filter(id => id !== '__done__') : [];
   await update(roomRef(), {
-    [`picks/${state.playerId}/${round}`]: finalVal,
+    [`picks/${state.playerId}/${round}`]: [...arr, '__done__'],
   });
   toast("Cosmetics locked in!");
 };
@@ -1014,7 +1027,7 @@ async function advanceRound(data) {
   // Remove picked cards from pile
   const poolKey = roundDef.pool;
   const numPlayers = data.numPlayers;
-  const dealSize = Math.min(numPlayers + 2, (data.piles[poolKey]||[]).length);
+  const dealSize = (data.piles[poolKey]||[]).length;
   const pickedThisRound = Object.values(data.picks).map(p => p[round]).filter(Boolean);
   const newPile = (data.piles[poolKey]||[]).slice(dealSize);
 
@@ -1201,16 +1214,6 @@ window.buyPowerCard = async function() {
   document.getElementById('pc-name').textContent = card.name;
   document.getElementById('pc-desc').textContent = card.desc;
   document.getElementById('power-card-reveal').style.display = 'block';
-  // Show dice roller if card needs a roll
-  const needsDice = card.desc && (card.desc.toLowerCase().includes('roll') || card.desc.toLowerCase().includes('d6'));
-  if (needsDice) {
-    document.getElementById('power-dice-section').style.display = 'block';
-    document.getElementById('power-dice-btn').disabled = false;
-    document.getElementById('power-dice-result').textContent = '';
-    document.getElementById('power-dice-outcome').textContent = '';
-  } else {
-    document.getElementById('power-dice-section').style.display = 'none';
-  }
   document.getElementById('power-btns').style.display = 'none';
 
   const newBudget = myBudget - 2500 + (card.cashBonus||0);
@@ -1331,31 +1334,18 @@ function renderResults(data) {
   const winnerId = sorted[0];
   const winnerName = data.players[winnerId]?.name || 'Winner';
   const winnerScore = scores[winnerId].total.toFixed(2);
-  const votesAllIn = allVotesCast(data);
-  const winnerBanner = votesAllIn
-    ? `<div class="winner-banner">
-        <div style="font-size:2rem">🏆</div>
-        <div class="winner-name">${winnerName} wins!</div>
-        <div class="winner-score">${winnerScore} points</div>
-      </div>`
-    : `<div class="winner-banner" style="border-color:var(--muted)">
-        <div style="font-size:1.5rem">🗳️</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:700;color:var(--muted)">Waiting for all votes...</div>
-        <div style="font-size:.85rem;color:var(--muted);margin-top:.25rem">Winner revealed when everyone votes</div>
-      </div>`;
-
-  // Only fire confetti when votes are all in
-  if (votesAllIn && !state.confettiFired) { state.confettiFired = true; launchConfetti(); }
-
-  content.innerHTML = winnerBanner + sorted.map((pid, i) => {
-    const isWinner = votesAllIn && i === 0;
+  content.innerHTML = `<div class="winner-banner">
+    <div style="font-size:2rem">🏆</div>
+    <div class="winner-name">${winnerName} wins!</div>
+    <div class="winner-score">${winnerScore} points</div>
+  </div>` + sorted.map((pid, i) => {
     const s = scores[pid];
     const pname = data.players[pid]?.name || pid;
     const isWinner = i === 0;
     return `<div class="score-card ${isWinner?'winner':''}">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div class="score-player">${isWinner?'<span class="crown">👑</span>':''}${pname}</div>
-        <div class="score-total">${votesAllIn ? s.total.toFixed(2) : '??.??'}</div>
+        <div class="score-total">${s.total.toFixed(2)}</div>
       </div>
       <div class="score-breakdown">
         <div class="score-line"><span>Build Points</span><span>${s.buildPts.toFixed(2)}</span></div>
@@ -1416,488 +1406,7 @@ window.castVote = async function(type, targetPid) {
   toast('Vote cast!');
 };
 
-
-// ── LIVE STATS PANEL ──────────────────────────────────────────────────────
-function renderStatsPanel(data) {
-  const panel = document.getElementById('stats-panel');
-  const grid = document.getElementById('stats-grid');
-  const bpEl = document.getElementById('stats-buildpts');
-  if (!panel || !grid) return;
-
-  const myPicksAll = (data.picks && data.picks[state.playerId]) || {};
-  const allCardIds = [];
-  ROUNDS.forEach((r, i) => {
-    const v = myPicksAll[i];
-    if (!v) return;
-    if (Array.isArray(v)) v.filter(id => id !== '__done__').forEach(id => allCardIds.push(id));
-    else allCardIds.push(v);
-  });
-
-  if (allCardIds.length === 0) { panel.style.display = 'none'; return; }
-  panel.style.display = 'block';
-
-  const cards = allCardIds.map(id => getCard(id)).filter(Boolean);
-  const stats = {acc:0,top:0,hand:0,brake:0,rel:0,fuel:0};
-  cards.forEach(card => {
-    stats.acc  += card.acc||0;  stats.top  += card.top||0;
-    stats.hand += card.hand||0; stats.brake+= card.brake||0;
-    stats.rel  += card.rel||0;  stats.fuel += card.fuel||0;
-  });
-
-  const buildPts = +(stats.acc+stats.top+stats.hand+stats.brake+stats.rel+stats.fuel).toFixed(2);
-  bpEl.textContent = `Build Pts: ${buildPts}`;
-
-  const statDefs = [
-    ['Acc', stats.acc], ['Top', stats.top], ['Hand', stats.hand],
-    ['Brake', stats.brake], ['Rel', stats.rel], ['Fuel', stats.fuel],
-  ];
-  grid.innerHTML = statDefs.map(([label, val]) => {
-    const cls = val > 0 ? 'var(--green)' : val < 0 ? 'var(--red)' : 'var(--muted)';
-    return `<div style="background:var(--dark3);border-radius:5px;padding:.3rem .2rem;text-align:center">
-      <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase">${label}</div>
-      <div style="font-size:.85rem;font-weight:700;color:${cls};font-family:'Barlow Condensed',sans-serif">${val>0?'+':''}${val.toFixed(1)}</div>
-    </div>`;
-  }).join('');
-}
-
-// ── HIDE WINNER UNTIL ALL VOTES CAST ──────────────────────────────────────
-function allVotesCast(data) {
-  const playerIds = data.playerOrder || [];
-  const lv = data.looksVotes || {};
-  const cv = data.creativityVotes || {};
-  // Each player (except self) needs to have voted in both categories
-  // We check that each player has submitted both votes
-  return playerIds.every(pid => lv[pid] && cv[pid]);
-}
-
-
-// ── POWER CARD DICE ROLLER ─────────────────────────────────────────────────
-window.rollPowerDice = function() {
-  const roll = Math.floor(Math.random() * 6) + 1;
-  const faces = ['⚀','⚁','⚂','⚃','⚄','⚅'];
-  document.getElementById('power-dice-result').textContent = faces[roll-1] + ' ' + roll;
-  document.getElementById('power-dice-btn').disabled = true;
-  // Lucky Door Prize special case
-  const pc = POWER_CARDS.find(p => p.name === 'Lucky Door Prize');
-  if (roll <= 3) {
-    document.getElementById('power-dice-outcome').textContent = `Result: ${roll} — $500 bonus!`;
-  } else {
-    document.getElementById('power-dice-outcome').textContent = `Result: ${roll} — $1,000 bonus!`;
-  }
-};
-
-
-// ── DEV TEST MODE ─────────────────────────────────────────────────────────
-let logoTapCount = 0;
-let logoTapTimer = null;
-
-window.handleLogoTap = function() {
-  logoTapCount++;
-  clearTimeout(logoTapTimer);
-  logoTapTimer = setTimeout(() => { logoTapCount = 0; }, 2000);
-  if (logoTapCount >= 5) {
-    logoTapCount = 0;
-    const btn = document.getElementById('dev-mode-btn');
-    const showing = btn.style.display !== 'none';
-    btn.style.display = showing ? 'none' : 'block';
-    if (!showing) toast('🔧 Dev mode unlocked');
-  }
-};
-
-window.startTestMode = function() {
-  // Set up fake state — no Firebase needed
-  state.roomCode  = 'DEVTEST';
-  state.playerId  = 'dev_player';
-  state.playerName = 'Dev (You)';
-  state.isHost    = true;
-  state.devMode   = true;
-
-  // Build shuffled piles
-  const piles = {};
-  Object.entries(CARDS).forEach(([type, cards]) => {
-    piles[type] = shuffle(cards).map(c => c.id);
-  });
-  piles.bonus = shuffle([...CARDS.Tuning, ...CARDS.Drivetrain, ...CARDS.Handling]).map(c => c.id);
-  piles.power = shuffle(POWER_CARDS).map(c => c.id);
-  const eventDeck = shuffle(EVENTS).map(e => e.id);
-
-  const p1 = 'dev_player';
-  const p2 = 'dev_bot';
-
-  const fakeData = {
-    host: p1,
-    status: 'playing',
-    round: 0,
-    piles,
-    eventDeck,
-    numPlayers: 2,
-    playerOrder: [p1, p2],
-    currentPickerIndex: 0,
-    picks: {},
-    playerBuilds: {[p1]:[], [p2]:[]},
-    playerBudgets: {[p1]: 100000, [p2]: 100000},
-    playerHP: {[p1]: 0, [p2]: 0},
-    playerReady: {[p1]: false, [p2]: false},
-    players: {
-      [p1]: {name:'Dev (You)', host:true},
-      [p2]: {name:'Bot Opponent', host:false},
-    },
-  };
-
-  state.gameData = fakeData;
-  showScreen('game');
-  renderGame(fakeData);
-  toast('🔧 Test mode — bot auto-picks each round');
-};
-
-// In dev mode, override roomRef update/get to use local state instead of Firebase
-const _origUpdate = window.__firebaseUpdate;
-
-function devModePickForBot() {
-  if (!state.devMode) return;
-  const data = state.gameData;
-  const round = data.round;
-  if (round === undefined || round > 8) return;
-  const roundDef = ROUNDS[round];
-  if (!roundDef) return;
-
-  const p2 = 'dev_bot';
-  // Bot already picked this round?
-  if (data.picks && data.picks[p2] && data.picks[p2][round] !== undefined) return;
-
-  const poolKey = roundDef.pool;
-  const poolIds = data.piles[poolKey] || [];
-  const budget = data.playerBudgets[p2] || 100000;
-
-  if (roundDef.multi) {
-    // Bot picks 1-2 cosmetics then done
-    const picks = [];
-    let remaining = budget;
-    for (const id of poolIds.slice(0, 3)) {
-      const card = getCard(id);
-      if (card && remaining >= card.cost) {
-        picks.push(id);
-        remaining -= card.cost;
-        if (picks.length >= 2) break;
-      }
-    }
-    picks.push('__done__');
-    if (!data.picks) data.picks = {};
-    if (!data.picks[p2]) data.picks[p2] = {};
-    data.picks[p2][round] = picks;
-    data.playerBudgets[p2] = remaining;
-  } else {
-    // Pick first affordable card not taken by player
-    const myPicks = new Set();
-    if (data.picks && data.picks['dev_player']) {
-      Object.values(data.picks['dev_player']).forEach(v => {
-        if (Array.isArray(v)) v.forEach(id => myPicks.add(id));
-        else if (v) myPicks.add(v);
-      });
-    }
-    const available = poolIds.filter(id => !myPicks.has(id));
-    const affordable = available.find(id => {
-      const card = getCard(id);
-      return card && budget >= card.cost;
-    });
-    if (affordable) {
-      if (!data.picks) data.picks = {};
-      if (!data.picks[p2]) data.picks[p2] = {};
-      data.picks[p2][round] = affordable;
-      const card = getCard(affordable);
-      data.playerBudgets[p2] = budget - (card.cost || 0);
-      data.playerHP[p2] = (data.playerHP[p2] || 0) + (card.hp || 0);
-    }
-  }
-}
-
-// Patch devMode into renderGame so bot auto-picks after player picks
-const _origPickCard = window.pickCard;
-
-// Patch update() for dev mode — write to local state instead of Firebase
-async function devUpdate(path, updates) {
-  if (!state.devMode) return;
-  // Apply updates to gameData
-  for (const [key, val] of Object.entries(updates)) {
-    const parts = key.split('/');
-    let obj = state.gameData;
-    for (let i = 0; i < parts.length - 1; i++) {
-      if (!obj[parts[i]]) obj[parts[i]] = {};
-      obj = obj[parts[i]];
-    }
-    obj[parts[parts.length-1]] = val;
-  }
-  // Bot picks after every player action
-  devModePickForBot();
-
-  // Check allPicked and advance
-  const data = state.gameData;
-  const round = data.round;
-  if (round === undefined) return;
-  const roundDef = ROUNDS[round];
-  if (!roundDef) return;
-  const isMulti = roundDef.multi;
-  const allPicked = data.playerOrder.every(pid => {
-    const v = data.picks && data.picks[pid] && data.picks[pid][round];
-    if (isMulti) return Array.isArray(v) && v.includes('__done__');
-    return v !== undefined && v !== null;
-  });
-  if (allPicked) {
-    setTimeout(() => devAdvanceRound(), 300);
-  } else {
-    renderGame(data);
-  }
-}
-
-function devAdvanceRound() {
-  const data = state.gameData;
-  const round = data.round;
-  if (round === undefined) return;
-  const roundDef = ROUNDS[round];
-  if (!roundDef) return;
-  const poolKey = roundDef.pool;
-  // Remove dealt cards from pile (just clear the top batch)
-  data.piles[poolKey] = (data.piles[poolKey] || []).slice(20);
-  // Handle event
-  if (roundDef.event === true && data.eventDeck && data.eventDeck.length > 0) {
-    data.pendingEventId = data.eventDeck[0];
-    data.eventDeck = data.eventDeck.slice(1);
-    data.eventResolved = {};
-  }
-  if (round < 8) {
-    data.round = round + 1;
-    renderGame(data);
-    toast(`Round ${round + 2} — ${ROUNDS[round+1].type}`);
-  } else {
-    // Go to power screen
-    data.status = 'power';
-    data.powerDecisions = {};
-    renderPowerScreen(data);
-  }
-}
-
-// Dev mode power card skip — skip straight to results
-const _origSkipPower = window.skipPowerCard;
-window.skipPowerCard = async function() {
-  if (!state.devMode) { _origSkipPower && _origSkipPower(); return; }
-  state.gameData.powerDecisions[state.playerId] = {cards:[], done:true};
-  state.gameData.powerDecisions['dev_bot'] = {cards:[], done:true};
-  devFinaliseResults();
-};
-
-function devFinaliseResults() {
-  const data = state.gameData;
-  const playerIds = data.playerOrder;
-  const scores = {};
-  playerIds.forEach(pid => {
-    const picks = data.picks[pid] || {};
-    const cardIds = [];
-    Object.values(picks).forEach(v => {
-      if (Array.isArray(v)) v.filter(id => id !== '__done__').forEach(id => cardIds.push(id));
-      else if (v) cardIds.push(v);
-    });
-    const cards = cardIds.map(id => getCard(id)).filter(Boolean);
-    const stats = {acc:0,top:0,hand:0,brake:0,rel:0,fuel:0,hp:0};
-    cards.forEach(card => {
-      stats.acc+=card.acc||0; stats.top+=card.top||0; stats.hand+=card.hand||0;
-      stats.brake+=card.brake||0; stats.rel+=card.rel||0; stats.fuel+=card.fuel||0;
-      stats.hp+=card.hp||0;
-    });
-    const hasIllegal = cards.some(c => c.legal === false);
-    scores[pid] = {
-      stats, budget: data.playerBudgets[pid]||0, hp: data.playerHP[pid]||0,
-      hasIllegal,
-      buildPts: parseFloat((stats.acc+stats.top+stats.hand+stats.brake+stats.rel+stats.fuel).toFixed(2)),
-      cards: cardIds,
-    };
-  });
-  const maxHP = Math.max(...playerIds.map(pid => scores[pid].hp));
-  const maxMoney = Math.max(...playerIds.map(pid => scores[pid].budget));
-  const maxBuildPts = Math.max(...playerIds.map(pid => scores[pid].buildPts));
-  const maxRel = Math.max(...playerIds.map(pid => scores[pid].stats.rel));
-  playerIds.forEach(pid => {
-    const s = scores[pid];
-    s.hpBonus = s.hp >= maxHP ? 3 : 0;
-    s.moneyBonus = s.budget >= maxMoney ? 1 : 0;
-    s.roadworthyBonus = !s.hasIllegal ? 1 : 0;
-    s.perfVote = s.buildPts >= maxBuildPts ? 2 : 0;
-    s.relVote = s.stats.rel >= maxRel ? 3 : 0;
-    s.looksVote = 0;
-    s.creativityVote = 0;
-  });
-  data.scores = scores;
-  data.status = 'results';
-  data.votingOpen = true;
-  data.looksVotes = {};
-  data.creativityVotes = {};
-  renderResults(data);
-}
-
-// Patch castVote for dev mode
-const _origCastVote = window.castVote;
-window.castVote = async function(type, targetPid) {
-  if (!state.devMode) { _origCastVote && _origCastVote(type, targetPid); return; }
-  if (!state.gameData.looksVotes) state.gameData.looksVotes = {};
-  if (!state.gameData.creativityVotes) state.gameData.creativityVotes = {};
-  if (type === 'looks') state.gameData.looksVotes[state.playerId] = targetPid;
-  if (type === 'creativity') state.gameData.creativityVotes[state.playerId] = targetPid;
-  // Bot also votes (randomly, not for itself)
-  const others = state.gameData.playerOrder.filter(p => p !== 'dev_bot');
-  if (!state.gameData.looksVotes['dev_bot']) state.gameData.looksVotes['dev_bot'] = others[Math.floor(Math.random()*others.length)];
-  if (!state.gameData.creativityVotes['dev_bot']) state.gameData.creativityVotes['dev_bot'] = others[Math.floor(Math.random()*others.length)];
-  toast('Vote cast!');
-  renderResults(state.gameData);
-};
-
-// Patch pickCard for dev mode to use devUpdate instead of Firebase
-window.pickCard = async function(cardId) {
-  if (!state.devMode) { _origPickCard && _origPickCard(cardId); return; }
-  const data = state.gameData;
-  const round = data.round;
-  const roundDef = ROUNDS[round];
-  const card = getCard(cardId);
-  const myBudget = data.playerBudgets[state.playerId];
-  if (!card || myBudget < card.cost) { toast("Can't afford!"); return; }
-  if (roundDef.multi) {
-    const existing = (data.picks && data.picks[state.playerId] && data.picks[state.playerId][round]) || [];
-    const arr = Array.isArray(existing) ? existing : [];
-    if (arr.includes(cardId)) { toast("Already picked!"); return; }
-    await devUpdate(`picks/${state.playerId}/${round}`, {});
-    // Directly mutate
-    if (!data.picks) data.picks = {};
-    if (!data.picks[state.playerId]) data.picks[state.playerId] = {};
-    const cur = data.picks[state.playerId][round] || [];
-    const curArr = Array.isArray(cur) ? cur : [];
-    data.picks[state.playerId][round] = [...curArr, cardId];
-    data.playerBudgets[state.playerId] -= card.cost;
-    toast(`Added: ${card.name}`);
-    renderGame(data);
-    return;
-  }
-  const updates = {};
-  updates[`picks/${state.playerId}/${round}`] = cardId;
-  updates[`playerBudgets/${state.playerId}`] = myBudget - card.cost;
-  updates[`playerHP/${state.playerId}`] = (data.playerHP[state.playerId]||0) + (card.hp||0);
-  await devUpdate('', updates);
-};
-
-window.doneMultiRound = async function() {
-  if (!state.devMode) {
-    // Original logic
-    const data = state.gameData;
-    const round = data.round;
-    const myPicks = (data.picks && data.picks[state.playerId] && data.picks[state.playerId][round]) || [];
-    const arr = Array.isArray(myPicks) ? myPicks : (myPicks ? [myPicks] : []);
-    const finalVal = arr.length > 0 ? arr : ['__done__'];
-    const {update: fbUpdate, ref: fbRef} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js");
-    return;
-  }
-  const data = state.gameData;
-  const round = data.round;
-  if (!data.picks) data.picks = {};
-  if (!data.picks[state.playerId]) data.picks[state.playerId] = {};
-  const cur = data.picks[state.playerId][round] || [];
-  const arr = Array.isArray(cur) ? cur : [];
-  data.picks[state.playerId][round] = [...arr.filter(id => id !== '__done__'), '__done__'];
-  toast("Cosmetics locked in!");
-  devModePickForBot();
-  const allDone = data.playerOrder.every(pid => {
-    const v = data.picks && data.picks[pid] && data.picks[pid][round];
-    return Array.isArray(v) && v.includes('__done__');
-  });
-  if (allDone) setTimeout(() => devAdvanceRound(), 300);
-  else renderGame(data);
-};
-
-window.dismissEvent = async function() {
-  document.getElementById('event-overlay').style.display = 'none';
-  if (state.devMode) {
-    renderGame(state.gameData);
-    return;
-  }
-  const {update: fbUpdate, ref: fbRef} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js");
-};
-
-window.buyPowerCard = async function() {
-  if (!state.devMode) {
-    // original below
-    const data = state.gameData;
-    const myBudget = data.playerBudgets[state.playerId];
-    if (myBudget < 2500) { toast("Not enough money!"); return; }
-    const powerPile = data.piles.power || [];
-    if (powerPile.length === 0) { toast("No power cards left!"); return; }
-    const cardId = powerPile[0];
-    const card = POWER_CARDS.find(pc => pc.id === cardId);
-    if (!card) { toast("Error drawing card"); return; }
-    if (card.cashBonus) state.powerCash = (state.powerCash||0) + card.cashBonus;
-    if (card.acc) state.myStatMods.acc = (state.myStatMods.acc||0) + card.acc;
-    if (card.top) state.myStatMods.top = (state.myStatMods.top||0) + card.top;
-    if (card.hand) state.myStatMods.hand = (state.myStatMods.hand||0) + card.hand;
-    if (card.brake) state.myStatMods.brake = (state.myStatMods.brake||0) + card.brake;
-    if (card.rel) state.myStatMods.rel = (state.myStatMods.rel||0) + card.rel;
-    if (card.fuel) state.myStatMods.fuel = (state.myStatMods.fuel||0) + card.fuel;
-    if (card.looksVotes) state.powerCardLooksBonus = (state.powerCardLooksBonus||0) + card.looksVotes;
-    document.getElementById('pc-name').textContent = card.name;
-    document.getElementById('pc-desc').textContent = card.desc;
-    document.getElementById('power-card-reveal').style.display = 'block';
-    const needsDice = card.desc && (card.desc.toLowerCase().includes('roll') || card.desc.toLowerCase().includes('d6'));
-    if (needsDice) {
-      document.getElementById('power-dice-section').style.display = 'block';
-      document.getElementById('power-dice-btn').disabled = false;
-      document.getElementById('power-dice-result').textContent = '';
-      document.getElementById('power-dice-outcome').textContent = '';
-    } else { document.getElementById('power-dice-section').style.display = 'none'; }
-    const newBudget = myBudget - 2500 + (card.cashBonus||0);
-    const prevDecision = (data.powerDecisions && data.powerDecisions[state.playerId]) || {cards:[], done:false};
-    const newCards = [...(prevDecision.cards||[]), cardId];
-    const {update: fbUpdate} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js");
-    toast(`Got: ${card.name}!`);
-    return;
-  }
-  // Dev mode
-  const data = state.gameData;
-  const myBudget = data.playerBudgets[state.playerId];
-  if (myBudget < 2500) { toast("Not enough money!"); return; }
-  const powerPile = data.piles.power || [];
-  if (!powerPile.length) { toast("No cards left!"); return; }
-  const cardId = powerPile[0];
-  const card = POWER_CARDS.find(pc => pc.id === cardId);
-  if (!card) return;
-  data.piles.power = powerPile.slice(1);
-  const newBudget = myBudget - 2500 + (card.cashBonus||0);
-  data.playerBudgets[state.playerId] = newBudget;
-  document.getElementById('power-budget').textContent = fmt(newBudget);
-  if (!data.powerDecisions) data.powerDecisions = {};
-  if (!data.powerDecisions[state.playerId]) data.powerDecisions[state.playerId] = {cards:[], done:false};
-  data.powerDecisions[state.playerId].cards.push(cardId);
-  document.getElementById('pc-name').textContent = card.name;
-  document.getElementById('pc-desc').textContent = card.desc;
-  document.getElementById('power-card-reveal').style.display = 'block';
-  const needsDice = card.desc && (card.desc.toLowerCase().includes('roll') || card.desc.toLowerCase().includes('d6'));
-  if (needsDice) {
-    document.getElementById('power-dice-section').style.display = 'block';
-    document.getElementById('power-dice-btn').disabled = false;
-    document.getElementById('power-dice-result').textContent = '';
-    document.getElementById('power-dice-outcome').textContent = '';
-  } else { document.getElementById('power-dice-section').style.display = 'none'; }
-  const boughtEl = document.getElementById('power-cards-bought');
-  if (boughtEl) {
-    const myBought = data.powerDecisions[state.playerId].cards;
-    boughtEl.innerHTML = myBought.map(cid => {
-      const pc = POWER_CARDS.find(p => p.id === cid);
-      return pc ? `<div style="background:var(--dark3);border:1px solid var(--dark4);border-radius:6px;padding:.5rem .75rem;font-size:.85rem"><span style="color:var(--gold);font-weight:600">${pc.name}</span><span style="color:var(--muted);font-size:.75rem;display:block">${pc.desc}</span></div>` : '';
-    }).join('');
-  }
-  toast(`Got: ${card.name}!`);
-  renderPowerScreen(data);
-};
-
 // ── SPLASH ────────────────────────────────────────────────────────────────
-window.addEventListener('error', () => {
-  const s = document.getElementById('splash');
-  if (s) s.style.display = 'none';
-});
-
 window.addEventListener('load', () => {
   // Check for saved session
   const saved = localStorage.getItem('hbt_session');
@@ -1914,11 +1423,10 @@ window.addEventListener('load', () => {
   }
   function hideSplash() {
     const s = document.getElementById('splash');
-    if (s) { s.classList.add('hide'); setTimeout(() => { s.style.display = 'none'; }, 400); }
+    if (s) { s.classList.add('hide'); setTimeout(() => { s.style.display='none'; }, 300); }
   }
   setTimeout(hideSplash, 800);
-  // Safety: always dismiss after 3s no matter what
-  setTimeout(hideSplash, 3000);
+  setTimeout(hideSplash, 2500);
 });
 
 // ── REJOIN ────────────────────────────────────────────────────────────────
@@ -2045,6 +1553,260 @@ function launchConfetti() {
     setTimeout(() => el.remove(), 4000);
   }
 }
+
+
+// ── LIVE STATS PANEL ──────────────────────────────────────────────
+function renderStatsPanel(data) {
+  const panel = document.getElementById('stats-panel');
+  const grid = document.getElementById('stats-grid');
+  const bpEl = document.getElementById('stats-buildpts');
+  if (!panel) return;
+  const myPicksAll = (data.picks && data.picks[state.playerId]) || {};
+  const allCardIds = [];
+  ROUNDS.forEach((r,i) => {
+    const v = myPicksAll[i];
+    if (!v) return;
+    if (Array.isArray(v)) v.filter(id => id !== '__done__').forEach(id => allCardIds.push(id));
+    else allCardIds.push(v);
+  });
+  if (!allCardIds.length) { panel.style.display='none'; return; }
+  panel.style.display='block';
+  const cards = allCardIds.map(id => getCard(id)).filter(Boolean);
+  const s = {acc:0,top:0,hand:0,brake:0,rel:0,fuel:0};
+  cards.forEach(c => { s.acc+=c.acc||0; s.top+=c.top||0; s.hand+=c.hand||0; s.brake+=c.brake||0; s.rel+=c.rel||0; s.fuel+=c.fuel||0; });
+  const bp = +(s.acc+s.top+s.hand+s.brake+s.rel+s.fuel).toFixed(2);
+  bpEl.textContent = 'Build Pts: '+bp;
+  grid.innerHTML = [['Acc',s.acc],['Top',s.top],['Hand',s.hand],['Brake',s.brake],['Rel',s.rel],['Fuel',s.fuel]].map(([l,v]) =>
+    `<div style="background:var(--dark3);border-radius:5px;padding:.3rem .2rem;text-align:center">
+      <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase">${l}</div>
+      <div style="font-size:.85rem;font-weight:700;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--muted)'};font-family:'Barlow Condensed',sans-serif">${v>0?'+':''}${v.toFixed(1)}</div>
+    </div>`
+  ).join('');
+}
+
+// ── VOTE CHECK ────────────────────────────────────────────────────
+function allVotesCast(data) {
+  const lv = data.looksVotes||{}, cv = data.creativityVotes||{};
+  return (data.playerOrder||[]).every(pid => lv[pid] && cv[pid]);
+}
+
+// ── DEV TEST MODE ─────────────────────────────────────────────────
+let _logoTaps = 0, _logoTimer = null;
+window.handleLogoTap = function() {
+  _logoTaps++;
+  clearTimeout(_logoTimer);
+  _logoTimer = setTimeout(() => { _logoTaps=0; }, 2000);
+  if (_logoTaps >= 5) {
+    _logoTaps = 0;
+    const btn = document.getElementById('dev-mode-btn');
+    btn.style.display = btn.style.display==='none' ? 'block' : 'none';
+    toast('🔧 Dev mode');
+  }
+};
+
+window.startTestMode = function() {
+  state.roomCode='DEVTEST'; state.playerId='dev_p1';
+  state.playerName='Dev (You)'; state.isHost=true; state.devMode=true;
+  const piles={};
+  Object.entries(CARDS).forEach(([t,cards]) => { piles[t]=shuffle(cards).map(c=>c.id); });
+  piles.bonus=shuffle([...CARDS.Tuning,...CARDS.Drivetrain,...CARDS.Handling]).map(c=>c.id);
+  piles.power=shuffle(POWER_CARDS).map(c=>c.id);
+  state.gameData={
+    host:'dev_p1', status:'playing', round:0, piles,
+    eventDeck:shuffle(EVENTS).map(e=>e.id),
+    numPlayers:2, playerOrder:['dev_p1','dev_bot'],
+    currentPickerIndex:0, picks:{}, playerBuilds:{},
+    playerBudgets:{'dev_p1':100000,'dev_bot':100000},
+    playerHP:{'dev_p1':0,'dev_bot':0},
+    players:{'dev_p1':{name:'Dev (You)',host:true},'dev_bot':{name:'Bot',host:false}},
+  };
+  showScreen('game');
+  renderGame(state.gameData);
+};
+
+function devBotPick() {
+  const data=state.gameData, round=data.round;
+  if (round===undefined||round>8) return;
+  const rd=ROUNDS[round], pid='dev_bot';
+  if (data.picks&&data.picks[pid]&&data.picks[pid][round]!==undefined) return;
+  const pool=data.piles[rd.pool]||[], budget=data.playerBudgets[pid]||100000;
+  if (!data.picks) data.picks={};
+  if (!data.picks[pid]) data.picks[pid]={};
+  if (rd.multi) {
+    const picks=[];
+    let rem=budget;
+    for (const id of pool.slice(0,4)) {
+      const card=getCard(id);
+      if (card&&rem>=card.cost) { picks.push(id); rem-=card.cost; if(picks.length>=2) break; }
+    }
+    picks.push('__done__');
+    data.picks[pid][round]=picks;
+    data.playerBudgets[pid]=rem;
+  } else {
+    const myTaken=new Set();
+    if (data.picks['dev_p1']) Object.values(data.picks['dev_p1']).forEach(v=>{ if(Array.isArray(v)) v.forEach(id=>myTaken.add(id)); else if(v) myTaken.add(v); });
+    const pick=pool.find(id=>{ const c=getCard(id); return c&&budget>=c.cost&&!myTaken.has(id); });
+    if (pick) { data.picks[pid][round]=pick; const c=getCard(pick); data.playerBudgets[pid]-=c.cost||0; data.playerHP[pid]=(data.playerHP[pid]||0)+(c.hp||0); }
+  }
+}
+
+function devCheckAdvance() {
+  const data=state.gameData, round=data.round;
+  if (round===undefined) return;
+  const rd=ROUNDS[round], isMulti=rd&&rd.multi;
+  const all=data.playerOrder.every(pid=>{
+    const v=data.picks&&data.picks[pid]&&data.picks[pid][round];
+    return isMulti ? Array.isArray(v)&&v.includes('__done__') : v!==undefined&&v!==null;
+  });
+  if (all) setTimeout(devAdvance, 400);
+  else renderGame(data);
+}
+
+function devAdvance() {
+  const data=state.gameData, round=data.round;
+  if (round===undefined) return;
+  const rd=ROUNDS[round];
+  data.piles[rd.pool]=(data.piles[rd.pool]||[]).slice(25);
+  if (rd.event===true&&data.eventDeck&&data.eventDeck.length) {
+    data.pendingEventId=data.eventDeck[0];
+    data.eventDeck=data.eventDeck.slice(1);
+    data.eventResolved={};
+  }
+  if (round<8) { data.round=round+1; renderGame(data); toast('Round '+(round+2)+' — '+ROUNDS[round+1].type); }
+  else { data.status='power'; data.powerDecisions={}; renderPowerScreen(data); }
+}
+
+// Patch window functions for dev mode
+const _origPickCard=window.pickCard;
+window.pickCard=async function(cardId) {
+  if (!state.devMode) { return _origPickCard(cardId); }
+  const data=state.gameData, round=data.round, rd=ROUNDS[round];
+  const card=getCard(cardId), budget=data.playerBudgets[state.playerId];
+  if (!card||budget<card.cost) { toast("Can't afford!"); return; }
+  if (!data.picks) data.picks={}; if (!data.picks[state.playerId]) data.picks[state.playerId]={};
+  if (rd.multi) {
+    const cur=data.picks[state.playerId][round]||[];
+    const arr=Array.isArray(cur)?cur:[];
+    if (arr.includes(cardId)) { toast("Already picked!"); return; }
+    data.picks[state.playerId][round]=[...arr,cardId];
+    data.playerBudgets[state.playerId]-=card.cost;
+    toast('Added: '+card.name);
+    renderGame(data);
+  } else {
+    data.picks[state.playerId][round]=cardId;
+    data.playerBudgets[state.playerId]-=card.cost;
+    data.playerHP[state.playerId]=(data.playerHP[state.playerId]||0)+(card.hp||0);
+    devBotPick(); devCheckAdvance();
+  }
+};
+
+const _origDone=window.doneMultiRound;
+window.doneMultiRound=async function() {
+  if (!state.devMode) { return _origDone(); }
+  const data=state.gameData, round=data.round;
+  if (!data.picks) data.picks={}; if (!data.picks[state.playerId]) data.picks[state.playerId]={};
+  const cur=data.picks[state.playerId][round]||[];
+  const arr=Array.isArray(cur)?cur.filter(id=>id!=='__done__'):[];
+  data.picks[state.playerId][round]=[...arr,'__done__'];
+  toast("Locked in!");
+  devBotPick(); devCheckAdvance();
+};
+
+const _origDismiss=window.dismissEvent;
+window.dismissEvent=async function() {
+  document.getElementById('event-overlay').style.display='none';
+  if (state.devMode) { renderGame(state.gameData); return; }
+  await update(roomRef(), {[`eventResolved/${state.playerId}`]:true});
+};
+
+const _origSkip=window.skipPowerCard;
+window.skipPowerCard=async function() {
+  if (!state.devMode) { return _origSkip(); }
+  devFinalise();
+};
+
+const _origBuy=window.buyPowerCard;
+window.buyPowerCard=async function() {
+  if (!state.devMode) { return _origBuy(); }
+  const data=state.gameData, budget=data.playerBudgets[state.playerId];
+  if (budget<2500) { toast("Not enough!"); return; }
+  const pile=data.piles.power||[];
+  if (!pile.length) { toast("None left!"); return; }
+  const cardId=pile[0], card=POWER_CARDS.find(p=>p.id===cardId);
+  if (!card) return;
+  data.piles.power=pile.slice(1);
+  data.playerBudgets[state.playerId]-=2500-(card.cashBonus||0);
+  if (!data.powerDecisions) data.powerDecisions={};
+  if (!data.powerDecisions[state.playerId]) data.powerDecisions[state.playerId]={cards:[],done:false};
+  data.powerDecisions[state.playerId].cards.push(cardId);
+  document.getElementById('pc-name').textContent=card.name;
+  document.getElementById('pc-desc').textContent=card.desc;
+  document.getElementById('power-card-reveal').style.display='block';
+  document.getElementById('power-budget').textContent=fmt(data.playerBudgets[state.playerId]);
+  const needsDice=card.desc&&(card.desc.toLowerCase().includes('roll')||card.desc.toLowerCase().includes('d6'));
+  document.getElementById('power-dice-section').style.display=needsDice?'block':'none';
+  if (needsDice) { document.getElementById('power-dice-btn').disabled=false; document.getElementById('power-dice-result').textContent=''; document.getElementById('power-dice-outcome').textContent=''; }
+  const boughtEl=document.getElementById('power-cards-bought');
+  if (boughtEl) boughtEl.innerHTML=data.powerDecisions[state.playerId].cards.map(cid=>{ const pc=POWER_CARDS.find(p=>p.id===cid); return pc?`<div style="background:var(--dark3);border:1px solid var(--dark4);border-radius:6px;padding:.5rem;font-size:.85rem"><span style="color:var(--gold);font-weight:600">${pc.name}</span></div>`:'';}).join('');
+  toast('Got: '+card.name+'!');
+};
+
+const _origCastVote=window.castVote;
+window.castVote=async function(type,pid) {
+  if (!state.devMode) { return _origCastVote(type,pid); }
+  if (!state.gameData.looksVotes) state.gameData.looksVotes={};
+  if (!state.gameData.creativityVotes) state.gameData.creativityVotes={};
+  if (type==='looks') state.gameData.looksVotes[state.playerId]=pid;
+  if (type==='creativity') state.gameData.creativityVotes[state.playerId]=pid;
+  const others=state.gameData.playerOrder.filter(p=>p!=='dev_bot');
+  if (!state.gameData.looksVotes['dev_bot']) state.gameData.looksVotes['dev_bot']=others[0];
+  if (!state.gameData.creativityVotes['dev_bot']) state.gameData.creativityVotes['dev_bot']=others[0];
+  toast('Vote cast!');
+  renderResults(state.gameData);
+};
+
+const _origCastVoteFromViewer=window.castVoteFromViewer;
+window.castVoteFromViewer=async function(type,pid) {
+  if (!state.devMode) { return _origCastVoteFromViewer(type,pid); }
+  await castVote(type,pid);
+  viewBuild(pid);
+};
+
+function devFinalise() {
+  const data=state.gameData, pids=data.playerOrder, scores={};
+  pids.forEach(pid=>{
+    const picks=data.picks[pid]||{}, cardIds=[];
+    Object.values(picks).forEach(v=>{ if(Array.isArray(v)) v.filter(id=>id!=='__done__').forEach(id=>cardIds.push(id)); else if(v) cardIds.push(v); });
+    const cards=cardIds.map(id=>getCard(id)).filter(Boolean);
+    const s={acc:0,top:0,hand:0,brake:0,rel:0,fuel:0,hp:0};
+    cards.forEach(c=>{ s.acc+=c.acc||0; s.top+=c.top||0; s.hand+=c.hand||0; s.brake+=c.brake||0; s.rel+=c.rel||0; s.fuel+=c.fuel||0; s.hp+=c.hp||0; });
+    scores[pid]={ stats:s, budget:data.playerBudgets[pid]||0, hp:data.playerHP[pid]||0,
+      hasIllegal:cards.some(c=>c.legal===false),
+      buildPts:parseFloat((s.acc+s.top+s.hand+s.brake+s.rel+s.fuel).toFixed(2)), cards:cardIds };
+  });
+  const maxHP=Math.max(...pids.map(p=>scores[p].hp));
+  const maxM=Math.max(...pids.map(p=>scores[p].budget));
+  const maxBP=Math.max(...pids.map(p=>scores[p].buildPts));
+  const maxRel=Math.max(...pids.map(p=>scores[p].stats.rel));
+  pids.forEach(pid=>{ const s=scores[pid];
+    s.hpBonus=s.hp>=maxHP?3:0; s.moneyBonus=s.budget>=maxM?1:0;
+    s.roadworthyBonus=!s.hasIllegal?1:0;
+    s.perfVote=s.buildPts>=maxBP?2:0; s.relVote=s.stats.rel>=maxRel?3:0;
+    s.looksVote=0; s.creativityVote=0;
+  });
+  data.scores=scores; data.status='results'; data.votingOpen=true;
+  data.looksVotes={}; data.creativityVotes={};
+  renderResults(data);
+}
+
+// ── DICE ROLLER FOR POWER CARDS ───────────────────────────────────
+window.rollPowerDice=function() {
+  const roll=Math.floor(Math.random()*6)+1;
+  const faces=['⚀','⚁','⚂','⚃','⚄','⚅'];
+  document.getElementById('power-dice-result').textContent=faces[roll-1]+' '+roll;
+  document.getElementById('power-dice-btn').disabled=true;
+  document.getElementById('power-dice-outcome').textContent=roll<=3?'Result: '+roll+' — $500':'Result: '+roll+' — $1,000';
+};
 
 </script>
 </body>
