@@ -1486,6 +1486,412 @@ window.rollPowerDice = function() {
   }
 };
 
+
+// ── DEV TEST MODE ─────────────────────────────────────────────────────────
+let logoTapCount = 0;
+let logoTapTimer = null;
+
+window.handleLogoTap = function() {
+  logoTapCount++;
+  clearTimeout(logoTapTimer);
+  logoTapTimer = setTimeout(() => { logoTapCount = 0; }, 2000);
+  if (logoTapCount >= 5) {
+    logoTapCount = 0;
+    const btn = document.getElementById('dev-mode-btn');
+    const showing = btn.style.display !== 'none';
+    btn.style.display = showing ? 'none' : 'block';
+    if (!showing) toast('🔧 Dev mode unlocked');
+  }
+};
+
+window.startTestMode = function() {
+  // Set up fake state — no Firebase needed
+  state.roomCode  = 'DEVTEST';
+  state.playerId  = 'dev_player';
+  state.playerName = 'Dev (You)';
+  state.isHost    = true;
+  state.devMode   = true;
+
+  // Build shuffled piles
+  const piles = {};
+  Object.entries(CARDS).forEach(([type, cards]) => {
+    piles[type] = shuffle(cards).map(c => c.id);
+  });
+  piles.bonus = shuffle([...CARDS.Tuning, ...CARDS.Drivetrain, ...CARDS.Handling]).map(c => c.id);
+  piles.power = shuffle(POWER_CARDS).map(c => c.id);
+  const eventDeck = shuffle(EVENTS).map(e => e.id);
+
+  const p1 = 'dev_player';
+  const p2 = 'dev_bot';
+
+  const fakeData = {
+    host: p1,
+    status: 'playing',
+    round: 0,
+    piles,
+    eventDeck,
+    numPlayers: 2,
+    playerOrder: [p1, p2],
+    currentPickerIndex: 0,
+    picks: {},
+    playerBuilds: {[p1]:[], [p2]:[]},
+    playerBudgets: {[p1]: 100000, [p2]: 100000},
+    playerHP: {[p1]: 0, [p2]: 0},
+    playerReady: {[p1]: false, [p2]: false},
+    players: {
+      [p1]: {name:'Dev (You)', host:true},
+      [p2]: {name:'Bot Opponent', host:false},
+    },
+  };
+
+  state.gameData = fakeData;
+  showScreen('game');
+  renderGame(fakeData);
+  toast('🔧 Test mode — bot auto-picks each round');
+};
+
+// In dev mode, override roomRef update/get to use local state instead of Firebase
+const _origUpdate = window.__firebaseUpdate;
+
+function devModePickForBot() {
+  if (!state.devMode) return;
+  const data = state.gameData;
+  const round = data.round;
+  if (round === undefined || round > 8) return;
+  const roundDef = ROUNDS[round];
+  if (!roundDef) return;
+
+  const p2 = 'dev_bot';
+  // Bot already picked this round?
+  if (data.picks && data.picks[p2] && data.picks[p2][round] !== undefined) return;
+
+  const poolKey = roundDef.pool;
+  const poolIds = data.piles[poolKey] || [];
+  const budget = data.playerBudgets[p2] || 100000;
+
+  if (roundDef.multi) {
+    // Bot picks 1-2 cosmetics then done
+    const picks = [];
+    let remaining = budget;
+    for (const id of poolIds.slice(0, 3)) {
+      const card = getCard(id);
+      if (card && remaining >= card.cost) {
+        picks.push(id);
+        remaining -= card.cost;
+        if (picks.length >= 2) break;
+      }
+    }
+    picks.push('__done__');
+    if (!data.picks) data.picks = {};
+    if (!data.picks[p2]) data.picks[p2] = {};
+    data.picks[p2][round] = picks;
+    data.playerBudgets[p2] = remaining;
+  } else {
+    // Pick first affordable card not taken by player
+    const myPicks = new Set();
+    if (data.picks && data.picks['dev_player']) {
+      Object.values(data.picks['dev_player']).forEach(v => {
+        if (Array.isArray(v)) v.forEach(id => myPicks.add(id));
+        else if (v) myPicks.add(v);
+      });
+    }
+    const available = poolIds.filter(id => !myPicks.has(id));
+    const affordable = available.find(id => {
+      const card = getCard(id);
+      return card && budget >= card.cost;
+    });
+    if (affordable) {
+      if (!data.picks) data.picks = {};
+      if (!data.picks[p2]) data.picks[p2] = {};
+      data.picks[p2][round] = affordable;
+      const card = getCard(affordable);
+      data.playerBudgets[p2] = budget - (card.cost || 0);
+      data.playerHP[p2] = (data.playerHP[p2] || 0) + (card.hp || 0);
+    }
+  }
+}
+
+// Patch devMode into renderGame so bot auto-picks after player picks
+const _origPickCard = window.pickCard;
+
+// Patch update() for dev mode — write to local state instead of Firebase
+async function devUpdate(path, updates) {
+  if (!state.devMode) return;
+  // Apply updates to gameData
+  for (const [key, val] of Object.entries(updates)) {
+    const parts = key.split('/');
+    let obj = state.gameData;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!obj[parts[i]]) obj[parts[i]] = {};
+      obj = obj[parts[i]];
+    }
+    obj[parts[parts.length-1]] = val;
+  }
+  // Bot picks after every player action
+  devModePickForBot();
+
+  // Check allPicked and advance
+  const data = state.gameData;
+  const round = data.round;
+  if (round === undefined) return;
+  const roundDef = ROUNDS[round];
+  if (!roundDef) return;
+  const isMulti = roundDef.multi;
+  const allPicked = data.playerOrder.every(pid => {
+    const v = data.picks && data.picks[pid] && data.picks[pid][round];
+    if (isMulti) return Array.isArray(v) && v.includes('__done__');
+    return v !== undefined && v !== null;
+  });
+  if (allPicked) {
+    setTimeout(() => devAdvanceRound(), 300);
+  } else {
+    renderGame(data);
+  }
+}
+
+function devAdvanceRound() {
+  const data = state.gameData;
+  const round = data.round;
+  if (round === undefined) return;
+  const roundDef = ROUNDS[round];
+  if (!roundDef) return;
+  const poolKey = roundDef.pool;
+  // Remove dealt cards from pile (just clear the top batch)
+  data.piles[poolKey] = (data.piles[poolKey] || []).slice(20);
+  // Handle event
+  if (roundDef.event === true && data.eventDeck && data.eventDeck.length > 0) {
+    data.pendingEventId = data.eventDeck[0];
+    data.eventDeck = data.eventDeck.slice(1);
+    data.eventResolved = {};
+  }
+  if (round < 8) {
+    data.round = round + 1;
+    renderGame(data);
+    toast(`Round ${round + 2} — ${ROUNDS[round+1].type}`);
+  } else {
+    // Go to power screen
+    data.status = 'power';
+    data.powerDecisions = {};
+    renderPowerScreen(data);
+  }
+}
+
+// Dev mode power card skip — skip straight to results
+const _origSkipPower = window.skipPowerCard;
+window.skipPowerCard = async function() {
+  if (!state.devMode) { _origSkipPower && _origSkipPower(); return; }
+  state.gameData.powerDecisions[state.playerId] = {cards:[], done:true};
+  state.gameData.powerDecisions['dev_bot'] = {cards:[], done:true};
+  devFinaliseResults();
+};
+
+function devFinaliseResults() {
+  const data = state.gameData;
+  const playerIds = data.playerOrder;
+  const scores = {};
+  playerIds.forEach(pid => {
+    const picks = data.picks[pid] || {};
+    const cardIds = [];
+    Object.values(picks).forEach(v => {
+      if (Array.isArray(v)) v.filter(id => id !== '__done__').forEach(id => cardIds.push(id));
+      else if (v) cardIds.push(v);
+    });
+    const cards = cardIds.map(id => getCard(id)).filter(Boolean);
+    const stats = {acc:0,top:0,hand:0,brake:0,rel:0,fuel:0,hp:0};
+    cards.forEach(card => {
+      stats.acc+=card.acc||0; stats.top+=card.top||0; stats.hand+=card.hand||0;
+      stats.brake+=card.brake||0; stats.rel+=card.rel||0; stats.fuel+=card.fuel||0;
+      stats.hp+=card.hp||0;
+    });
+    const hasIllegal = cards.some(c => c.legal === false);
+    scores[pid] = {
+      stats, budget: data.playerBudgets[pid]||0, hp: data.playerHP[pid]||0,
+      hasIllegal,
+      buildPts: parseFloat((stats.acc+stats.top+stats.hand+stats.brake+stats.rel+stats.fuel).toFixed(2)),
+      cards: cardIds,
+    };
+  });
+  const maxHP = Math.max(...playerIds.map(pid => scores[pid].hp));
+  const maxMoney = Math.max(...playerIds.map(pid => scores[pid].budget));
+  const maxBuildPts = Math.max(...playerIds.map(pid => scores[pid].buildPts));
+  const maxRel = Math.max(...playerIds.map(pid => scores[pid].stats.rel));
+  playerIds.forEach(pid => {
+    const s = scores[pid];
+    s.hpBonus = s.hp >= maxHP ? 3 : 0;
+    s.moneyBonus = s.budget >= maxMoney ? 1 : 0;
+    s.roadworthyBonus = !s.hasIllegal ? 1 : 0;
+    s.perfVote = s.buildPts >= maxBuildPts ? 2 : 0;
+    s.relVote = s.stats.rel >= maxRel ? 3 : 0;
+    s.looksVote = 0;
+    s.creativityVote = 0;
+  });
+  data.scores = scores;
+  data.status = 'results';
+  data.votingOpen = true;
+  data.looksVotes = {};
+  data.creativityVotes = {};
+  renderResults(data);
+}
+
+// Patch castVote for dev mode
+const _origCastVote = window.castVote;
+window.castVote = async function(type, targetPid) {
+  if (!state.devMode) { _origCastVote && _origCastVote(type, targetPid); return; }
+  if (!state.gameData.looksVotes) state.gameData.looksVotes = {};
+  if (!state.gameData.creativityVotes) state.gameData.creativityVotes = {};
+  if (type === 'looks') state.gameData.looksVotes[state.playerId] = targetPid;
+  if (type === 'creativity') state.gameData.creativityVotes[state.playerId] = targetPid;
+  // Bot also votes (randomly, not for itself)
+  const others = state.gameData.playerOrder.filter(p => p !== 'dev_bot');
+  if (!state.gameData.looksVotes['dev_bot']) state.gameData.looksVotes['dev_bot'] = others[Math.floor(Math.random()*others.length)];
+  if (!state.gameData.creativityVotes['dev_bot']) state.gameData.creativityVotes['dev_bot'] = others[Math.floor(Math.random()*others.length)];
+  toast('Vote cast!');
+  renderResults(state.gameData);
+};
+
+// Patch pickCard for dev mode to use devUpdate instead of Firebase
+window.pickCard = async function(cardId) {
+  if (!state.devMode) { _origPickCard && _origPickCard(cardId); return; }
+  const data = state.gameData;
+  const round = data.round;
+  const roundDef = ROUNDS[round];
+  const card = getCard(cardId);
+  const myBudget = data.playerBudgets[state.playerId];
+  if (!card || myBudget < card.cost) { toast("Can't afford!"); return; }
+  if (roundDef.multi) {
+    const existing = (data.picks && data.picks[state.playerId] && data.picks[state.playerId][round]) || [];
+    const arr = Array.isArray(existing) ? existing : [];
+    if (arr.includes(cardId)) { toast("Already picked!"); return; }
+    await devUpdate(`picks/${state.playerId}/${round}`, {});
+    // Directly mutate
+    if (!data.picks) data.picks = {};
+    if (!data.picks[state.playerId]) data.picks[state.playerId] = {};
+    const cur = data.picks[state.playerId][round] || [];
+    const curArr = Array.isArray(cur) ? cur : [];
+    data.picks[state.playerId][round] = [...curArr, cardId];
+    data.playerBudgets[state.playerId] -= card.cost;
+    toast(`Added: ${card.name}`);
+    renderGame(data);
+    return;
+  }
+  const updates = {};
+  updates[`picks/${state.playerId}/${round}`] = cardId;
+  updates[`playerBudgets/${state.playerId}`] = myBudget - card.cost;
+  updates[`playerHP/${state.playerId}`] = (data.playerHP[state.playerId]||0) + (card.hp||0);
+  await devUpdate('', updates);
+};
+
+window.doneMultiRound = async function() {
+  if (!state.devMode) {
+    // Original logic
+    const data = state.gameData;
+    const round = data.round;
+    const myPicks = (data.picks && data.picks[state.playerId] && data.picks[state.playerId][round]) || [];
+    const arr = Array.isArray(myPicks) ? myPicks : (myPicks ? [myPicks] : []);
+    const finalVal = arr.length > 0 ? arr : ['__done__'];
+    const {update: fbUpdate, ref: fbRef} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js");
+    return;
+  }
+  const data = state.gameData;
+  const round = data.round;
+  if (!data.picks) data.picks = {};
+  if (!data.picks[state.playerId]) data.picks[state.playerId] = {};
+  const cur = data.picks[state.playerId][round] || [];
+  const arr = Array.isArray(cur) ? cur : [];
+  data.picks[state.playerId][round] = [...arr.filter(id => id !== '__done__'), '__done__'];
+  toast("Cosmetics locked in!");
+  devModePickForBot();
+  const allDone = data.playerOrder.every(pid => {
+    const v = data.picks && data.picks[pid] && data.picks[pid][round];
+    return Array.isArray(v) && v.includes('__done__');
+  });
+  if (allDone) setTimeout(() => devAdvanceRound(), 300);
+  else renderGame(data);
+};
+
+window.dismissEvent = async function() {
+  document.getElementById('event-overlay').style.display = 'none';
+  if (state.devMode) {
+    renderGame(state.gameData);
+    return;
+  }
+  const {update: fbUpdate, ref: fbRef} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js");
+};
+
+window.buyPowerCard = async function() {
+  if (!state.devMode) {
+    // original below
+    const data = state.gameData;
+    const myBudget = data.playerBudgets[state.playerId];
+    if (myBudget < 2500) { toast("Not enough money!"); return; }
+    const powerPile = data.piles.power || [];
+    if (powerPile.length === 0) { toast("No power cards left!"); return; }
+    const cardId = powerPile[0];
+    const card = POWER_CARDS.find(pc => pc.id === cardId);
+    if (!card) { toast("Error drawing card"); return; }
+    if (card.cashBonus) state.powerCash = (state.powerCash||0) + card.cashBonus;
+    if (card.acc) state.myStatMods.acc = (state.myStatMods.acc||0) + card.acc;
+    if (card.top) state.myStatMods.top = (state.myStatMods.top||0) + card.top;
+    if (card.hand) state.myStatMods.hand = (state.myStatMods.hand||0) + card.hand;
+    if (card.brake) state.myStatMods.brake = (state.myStatMods.brake||0) + card.brake;
+    if (card.rel) state.myStatMods.rel = (state.myStatMods.rel||0) + card.rel;
+    if (card.fuel) state.myStatMods.fuel = (state.myStatMods.fuel||0) + card.fuel;
+    if (card.looksVotes) state.powerCardLooksBonus = (state.powerCardLooksBonus||0) + card.looksVotes;
+    document.getElementById('pc-name').textContent = card.name;
+    document.getElementById('pc-desc').textContent = card.desc;
+    document.getElementById('power-card-reveal').style.display = 'block';
+    const needsDice = card.desc && (card.desc.toLowerCase().includes('roll') || card.desc.toLowerCase().includes('d6'));
+    if (needsDice) {
+      document.getElementById('power-dice-section').style.display = 'block';
+      document.getElementById('power-dice-btn').disabled = false;
+      document.getElementById('power-dice-result').textContent = '';
+      document.getElementById('power-dice-outcome').textContent = '';
+    } else { document.getElementById('power-dice-section').style.display = 'none'; }
+    const newBudget = myBudget - 2500 + (card.cashBonus||0);
+    const prevDecision = (data.powerDecisions && data.powerDecisions[state.playerId]) || {cards:[], done:false};
+    const newCards = [...(prevDecision.cards||[]), cardId];
+    const {update: fbUpdate} = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js");
+    toast(`Got: ${card.name}!`);
+    return;
+  }
+  // Dev mode
+  const data = state.gameData;
+  const myBudget = data.playerBudgets[state.playerId];
+  if (myBudget < 2500) { toast("Not enough money!"); return; }
+  const powerPile = data.piles.power || [];
+  if (!powerPile.length) { toast("No cards left!"); return; }
+  const cardId = powerPile[0];
+  const card = POWER_CARDS.find(pc => pc.id === cardId);
+  if (!card) return;
+  data.piles.power = powerPile.slice(1);
+  const newBudget = myBudget - 2500 + (card.cashBonus||0);
+  data.playerBudgets[state.playerId] = newBudget;
+  document.getElementById('power-budget').textContent = fmt(newBudget);
+  if (!data.powerDecisions) data.powerDecisions = {};
+  if (!data.powerDecisions[state.playerId]) data.powerDecisions[state.playerId] = {cards:[], done:false};
+  data.powerDecisions[state.playerId].cards.push(cardId);
+  document.getElementById('pc-name').textContent = card.name;
+  document.getElementById('pc-desc').textContent = card.desc;
+  document.getElementById('power-card-reveal').style.display = 'block';
+  const needsDice = card.desc && (card.desc.toLowerCase().includes('roll') || card.desc.toLowerCase().includes('d6'));
+  if (needsDice) {
+    document.getElementById('power-dice-section').style.display = 'block';
+    document.getElementById('power-dice-btn').disabled = false;
+    document.getElementById('power-dice-result').textContent = '';
+    document.getElementById('power-dice-outcome').textContent = '';
+  } else { document.getElementById('power-dice-section').style.display = 'none'; }
+  const boughtEl = document.getElementById('power-cards-bought');
+  if (boughtEl) {
+    const myBought = data.powerDecisions[state.playerId].cards;
+    boughtEl.innerHTML = myBought.map(cid => {
+      const pc = POWER_CARDS.find(p => p.id === cid);
+      return pc ? `<div style="background:var(--dark3);border:1px solid var(--dark4);border-radius:6px;padding:.5rem .75rem;font-size:.85rem"><span style="color:var(--gold);font-weight:600">${pc.name}</span><span style="color:var(--muted);font-size:.75rem;display:block">${pc.desc}</span></div>` : '';
+    }).join('');
+  }
+  toast(`Got: ${card.name}!`);
+  renderPowerScreen(data);
+};
+
 // ── SPLASH ────────────────────────────────────────────────────────────────
 window.addEventListener('load', () => {
   // Check for saved session
