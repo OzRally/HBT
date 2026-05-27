@@ -655,6 +655,17 @@ function renderGame(data) {
   // Check if I already picked this round
   const myPick = data.picks && data.picks[state.playerId] && data.picks[state.playerId][round];
 
+
+  // Host checks allPicked on every Firebase update
+  if (state.isHost && !state.advancing) {
+    const picks = data.picks || {};
+    const allPicked = data.playerOrder.every(pid => picks[pid] && picks[pid][round] !== undefined);
+    if (allPicked) {
+      state.advancing = true;
+      advanceRound(data).then(() => { state.advancing = false; });
+      return;
+    }
+  }
   // Render available cards for this round
   const poolKey = roundDef.pool;
   let poolIds = data.piles[poolKey] || [];
@@ -764,20 +775,15 @@ window.pickCard = async function(cardId) {
   updates[`playerHP/${state.playerId}`] = newHP;
 
   await update(roomRef(), updates);
-
-  // Check if all players have picked
-  const snap = await get(roomRef());
-  const fresh = snap.val();
-  const picks = fresh.picks || {};
-  const allPicked = fresh.playerOrder.every(pid => picks[pid] && picks[pid][round] !== undefined);
-
-  if (allPicked && state.isHost) {
-    await advanceRound(fresh);
-  }
+  // advanceRound is handled by the Firebase listener in renderGame
 };
 
 async function advanceRound(data) {
   const round = data.round;
+  // Guard: re-fetch to confirm round hasn't already advanced
+  const guardSnap = await get(roomRef());
+  const guardData = guardSnap.val();
+  if (!guardData || guardData.round !== round || guardData.status !== 'playing') return;
   const roundDef = ROUNDS[round];
 
   // Remove picked cards from pile
