@@ -1225,8 +1225,6 @@ function renderResults(data) {
   if (!data.scores) return;
 
   const playerIds = data.playerOrder;
-  // Confetti for winner
-  if (!state.confettiFired) { state.confettiFired = true; launchConfetti(); }
   const content = document.getElementById('results-content');
   const votePanels = document.getElementById('vote-panels');
 
@@ -1246,22 +1244,35 @@ function renderResults(data) {
   });
 
   const sorted = [...playerIds].sort((a,b) => scores[b].total - scores[a].total);
+  const votesIn = allVotesCast(data);
+
+  // Only fire confetti when all votes are in
+  if (votesIn && !state.confettiFired) { state.confettiFired = true; launchConfetti(); }
 
   const winnerId = sorted[0];
   const winnerName = data.players[winnerId]?.name || 'Winner';
   const winnerScore = scores[winnerId].total.toFixed(2);
-  content.innerHTML = `<div class="winner-banner">
-    <div style="font-size:2rem">🏆</div>
-    <div class="winner-name">${winnerName} wins!</div>
-    <div class="winner-score">${winnerScore} points</div>
-  </div>` + sorted.map((pid, i) => {
+
+  const winnerBanner = votesIn
+    ? `<div class="winner-banner">
+        <div style="font-size:2rem">🏆</div>
+        <div class="winner-name">${winnerName} wins!</div>
+        <div class="winner-score">${winnerScore} points</div>
+      </div>`
+    : `<div class="winner-banner" style="border-color:var(--muted);background:var(--dark2)">
+        <div style="font-size:1.5rem">🗳️</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:700;color:var(--muted)">Waiting for all votes...</div>
+        <div style="font-size:.85rem;color:var(--muted);margin-top:.25rem">Winner revealed when everyone votes</div>
+      </div>`;
+
+  content.innerHTML = winnerBanner + sorted.map((pid, i) => {
     const s = scores[pid];
     const pname = data.players[pid]?.name || pid;
-    const isWinner = i === 0;
+    const isWinner = votesIn && i === 0;
     return `<div class="score-card ${isWinner?'winner':''}">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div class="score-player">${isWinner?'<span class="crown">👑</span>':''}${pname}</div>
-        <div class="score-total">${s.total.toFixed(2)}</div>
+        <div class="score-total">${votesIn ? s.total.toFixed(2) : '??.??'}</div>
       </div>
       <div class="score-breakdown">
         <div class="score-line"><span>Build Points</span><span>${s.buildPts.toFixed(2)}</span></div>
@@ -1450,6 +1461,14 @@ window.closeModal = function(e) {
 };
 
 // ── CONFETTI ───────────────────────────────────────────────────────────────
+
+function allVotesCast(data) {
+  const lv = data.looksVotes || {};
+  const cv = data.creativityVotes || {};
+  const pids = data.playerOrder || [];
+  return pids.every(pid => lv[pid] && cv[pid]);
+}
+
 function launchConfetti() {
   const colours = ['#D85A30','#f1c40f','#2ecc71','#3498db','#e74c3c','#ff6b35'];
   for (let i = 0; i < 80; i++) {
