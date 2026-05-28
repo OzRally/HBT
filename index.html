@@ -244,8 +244,11 @@
 </div>
 
 <div id="lobby" class="screen active">
-  <div class="logo">HBT</div>
+  <div class="logo" onclick="handleLogoTap()" style="cursor:pointer;user-select:none">HBT</div>
   <div class="tagline">Hand Brake Turn</div>
+  <div id="dev-mode-btn" style="display:none;width:100%;max-width:380px">
+    <button class="btn btn-secondary" style="width:100%;border-color:var(--orange);color:var(--orange)" onclick="startTestMode()">🔧 DEV TEST MODE</button>
+  </div>
 
   <div id="rejoin-banner" class="rejoin-banner" style="display:none">
     <div class="rejoin-title">↩ Rejoin Game?</div>
@@ -1246,7 +1249,6 @@ function renderResults(data) {
   const sorted = [...playerIds].sort((a,b) => scores[b].total - scores[a].total);
   const votesIn = allVotesCast(data);
 
-  // Only fire confetti when all votes are in
   if (votesIn && !state.confettiFired) { state.confettiFired = true; launchConfetti(); }
 
   const winnerId = sorted[0];
@@ -1486,6 +1488,211 @@ function launchConfetti() {
     setTimeout(() => el.remove(), 4000);
   }
 }
+
+
+// ══════════════════════════════════════════════════════════════════
+// DEV TEST MODE
+// ══════════════════════════════════════════════════════════════════
+let _devTaps = 0, _devTimer = null;
+
+window.handleLogoTap = function() {
+  _devTaps++;
+  clearTimeout(_devTimer);
+  _devTimer = setTimeout(() => { _devTaps = 0; }, 2000);
+  if (_devTaps >= 5) {
+    _devTaps = 0;
+    const btn = document.getElementById('dev-mode-btn');
+    btn.style.display = btn.style.display === 'none' ? 'block' : 'none';
+    toast('🔧 Dev mode unlocked');
+  }
+};
+
+window.startTestMode = function() {
+  state.roomCode = 'DEVTEST';
+  state.playerId = 'dev_p1';
+  state.playerName = 'Dev';
+  state.isHost = true;
+  state.devMode = true;
+  const piles = {};
+  Object.entries(CARDS).forEach(([t, cards]) => { piles[t] = shuffle(cards).map(c => c.id); });
+  piles.bonus = shuffle([...CARDS.Tuning, ...CARDS.Drivetrain, ...CARDS.Handling]).map(c => c.id);
+  piles.power = shuffle(POWER_CARDS).map(c => c.id);
+  state.gameData = {
+    host: 'dev_p1', status: 'playing', round: 0, piles,
+    eventDeck: shuffle(EVENTS).map(e => e.id),
+    numPlayers: 2, playerOrder: ['dev_p1', 'dev_bot'],
+    currentPickerIndex: 0, picks: {},
+    playerBudgets: {dev_p1: 75000, dev_bot: 75000},
+    playerHP: {dev_p1: 0, dev_bot: 0},
+    players: {
+      dev_p1: {name: 'Dev', host: true},
+      dev_bot: {name: 'Bot', host: false},
+    },
+  };
+  showScreen('game');
+  renderGame(state.gameData);
+  toast('🔧 Test mode active');
+};
+
+function _devBotPick() {
+  const d = state.gameData, r = d.round;
+  if (r === undefined || r > 6) return;
+  const rd = ROUNDS[r], pid = 'dev_bot';
+  if (d.picks?.[pid]?.[r] !== undefined) return;
+  const pool = d.piles[rd.pool] || [];
+  const budget = d.playerBudgets[pid] || 75000;
+  if (!d.picks) d.picks = {};
+  if (!d.picks[pid]) d.picks[pid] = {};
+  const taken = new Set();
+  if (d.picks.dev_p1) Object.values(d.picks.dev_p1).forEach(v => { if(v) taken.add(v); });
+  const pickId = pool.find(id => {
+    const c = getCard(id);
+    return c && budget >= c.cost && !taken.has(id);
+  });
+  if (pickId) {
+    d.picks[pid][r] = pickId;
+    const c = getCard(pickId);
+    d.playerBudgets[pid] = budget - (c.cost || 0);
+    d.playerHP[pid] = (d.playerHP[pid] || 0) + (c.hp || 0);
+  }
+}
+
+function _devAdvance() {
+  const d = state.gameData, r = d.round;
+  if (r === undefined) return;
+  const rd = ROUNDS[r];
+  d.piles[rd.pool] = (d.piles[rd.pool] || []).slice(20);
+  if (rd.event === true && d.eventDeck?.length) {
+    d.pendingEventId = d.eventDeck[0];
+    d.eventDeck = d.eventDeck.slice(1);
+    d.eventResolved = {};
+  }
+  if (r < 6) {
+    d.round = r + 1;
+    renderGame(d);
+    toast(`Round ${r + 2} — ${ROUNDS[r + 1].type}`);
+  } else {
+    d.status = 'power';
+    d.powerDecisions = {};
+    renderPowerScreen(d);
+  }
+}
+
+function _devCheck() {
+  const d = state.gameData, r = d.round;
+  const all = d.playerOrder.every(pid => {
+    const v = d.picks?.[pid]?.[r];
+    return v !== undefined && v !== null;
+  });
+  if (all) setTimeout(_devAdvance, 400);
+  else renderGame(d);
+}
+
+function _devFinalise() {
+  const d = state.gameData;
+  const pids = d.playerOrder, scores = {};
+  pids.forEach(pid => {
+    const picks = d.picks[pid] || {};
+    const cardIds = Object.values(picks);
+    const cards = cardIds.map(id => getCard(id)).filter(Boolean);
+    const s = {acc:0,top:0,hand:0,brake:0,rel:0,fuel:0,hp:0};
+    cards.forEach(c => { s.acc+=c.acc||0; s.top+=c.top||0; s.hand+=c.hand||0; s.brake+=c.brake||0; s.rel+=c.rel||0; s.fuel+=c.fuel||0; s.hp+=c.hp||0; });
+    scores[pid] = {
+      stats: s, budget: d.playerBudgets[pid]||0, hp: d.playerHP[pid]||0,
+      hasIllegal: cards.some(c => c.legal === false),
+      buildPts: parseFloat((s.acc+s.top+s.hand+s.brake+s.rel+s.fuel).toFixed(2)),
+      cards: cardIds,
+    };
+  });
+  const maxHP = Math.max(...pids.map(p => scores[p].hp));
+  const maxM  = Math.max(...pids.map(p => scores[p].budget));
+  const maxBP = Math.max(...pids.map(p => scores[p].buildPts));
+  const maxRel = Math.max(...pids.map(p => scores[p].stats.rel));
+  pids.forEach(pid => {
+    const s = scores[pid];
+    s.hpBonus = s.hp >= maxHP ? 3 : 0;
+    s.moneyBonus = s.budget >= maxM ? 1 : 0;
+    s.roadworthyBonus = !s.hasIllegal ? 1 : 0;
+    s.perfVote = s.buildPts >= maxBP ? 2 : 0;
+    s.relVote = s.stats.rel >= maxRel ? 3 : 0;
+    s.looksVote = 0; s.creativityVote = 0;
+  });
+  d.scores = scores;
+  d.status = 'results';
+  d.votingOpen = true;
+  d.looksVotes = {};
+  d.creativityVotes = {};
+  renderResults(d);
+}
+
+// Wrap originals — capture BEFORE replacing
+const _origPick = window.pickCard;
+const _origDismiss = window.dismissEvent;
+const _origBuy = window.buyPowerCard;
+const _origSkip = window.skipPowerCard;
+const _origCast = window.castVote;
+
+window.pickCard = async function(cardId) {
+  if (!state.devMode) return _origPick(cardId);
+  const d = state.gameData, r = d.round;
+  const card = getCard(cardId);
+  const budget = d.playerBudgets[state.playerId];
+  if (!card || budget < card.cost) { toast("Can't afford!"); return; }
+  if (!d.picks) d.picks = {};
+  if (!d.picks[state.playerId]) d.picks[state.playerId] = {};
+  d.picks[state.playerId][r] = cardId;
+  d.playerBudgets[state.playerId] = budget - card.cost;
+  d.playerHP[state.playerId] = (d.playerHP[state.playerId]||0) + (card.hp||0);
+  _devBotPick();
+  _devCheck();
+};
+
+window.dismissEvent = async function() {
+  document.getElementById('event-overlay').style.display = 'none';
+  if (state.devMode) { renderGame(state.gameData); return; }
+  return _origDismiss();
+};
+
+window.buyPowerCard = async function() {
+  if (!state.devMode) return _origBuy();
+  const d = state.gameData;
+  const budget = d.playerBudgets[state.playerId];
+  if (budget < 2500) { toast("Not enough!"); return; }
+  const pile = d.piles.power || [];
+  if (!pile.length) { toast("No cards left!"); return; }
+  const card = POWER_CARDS.find(p => p.id === pile[0]);
+  if (!card) return;
+  d.piles.power = pile.slice(1);
+  d.playerBudgets[state.playerId] = budget - 2500 + (card.cashBonus||0);
+  document.getElementById('pc-name').textContent = card.name;
+  document.getElementById('pc-desc').textContent = card.desc;
+  document.getElementById('power-card-reveal').style.display = 'block';
+  document.getElementById('power-btns').style.display = 'none';
+  document.getElementById('power-budget').textContent = fmt(d.playerBudgets[state.playerId]);
+  setTimeout(() => { document.getElementById('power-waiting').style.display = 'block'; }, 1500);
+  setTimeout(_devFinalise, 2000);
+};
+
+window.skipPowerCard = async function() {
+  if (!state.devMode) return _origSkip();
+  document.getElementById('power-btns').style.display = 'none';
+  document.getElementById('power-waiting').style.display = 'block';
+  setTimeout(_devFinalise, 500);
+};
+
+window.castVote = async function(type, targetPid) {
+  if (!state.devMode) return _origCast(type, targetPid);
+  const d = state.gameData;
+  if (!d.looksVotes) d.looksVotes = {};
+  if (!d.creativityVotes) d.creativityVotes = {};
+  if (type === 'looks') d.looksVotes[state.playerId] = targetPid;
+  if (type === 'creativity') d.creativityVotes[state.playerId] = targetPid;
+  const others = d.playerOrder.filter(p => p !== 'dev_bot');
+  if (!d.looksVotes.dev_bot) d.looksVotes.dev_bot = others[0];
+  if (!d.creativityVotes.dev_bot) d.creativityVotes.dev_bot = others[0];
+  toast('Vote cast!');
+  renderResults(d);
+};
 
 </script>
 </body>
