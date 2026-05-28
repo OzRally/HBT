@@ -293,8 +293,6 @@
     <div class="progress-dot" id="pd4"></div>
     <div class="progress-dot" id="pd5"></div>
     <div class="progress-dot" id="pd6"></div>
-    <div class="progress-dot" id="pd7"></div>
-    <div class="progress-dot" id="pd8"></div>
   </div>
 
   <div class="cards-section" id="cards-section">
@@ -307,22 +305,6 @@
     <div class="build-slots" id="build-slots"></div>
   </div>
 
-
-  <!-- STATS PANEL -->
-  <div id="stats-panel" style="display:none;background:var(--dark2);border-top:1px solid var(--dark4);padding:.6rem 1rem;flex-shrink:0">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase">My Stats</div>
-      <div style="font-size:.8rem;color:var(--orange);font-weight:700;font-family:'Barlow Condensed',sans-serif" id="stats-buildpts"></div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:.3rem" id="stats-grid"></div>
-  </div>
-  <div id="stats-panel" style="display:none;background:var(--dark2);border-top:1px solid var(--dark4);padding:.6rem 1rem;flex-shrink:0">
-    <div style="display:flex;justify-content:space-between;margin-bottom:.4rem">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px">My Stats</div>
-      <div style="font-size:.8rem;color:var(--orange);font-weight:700;font-family:'Barlow Condensed',sans-serif" id="stats-buildpts"></div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:.3rem" id="stats-grid"></div>
-  </div>
   <!-- Waiting for others -->
   <div class="waiting-overlay" id="waiting-overlay" style="display:none">
     <div class="spinner"></div>
@@ -615,20 +597,18 @@ const POWER_CARDS = [
 
 // ── GAME STATE ───────────────────────────────────────────────────────────────
 const ROUNDS = [
-  {type:"Chassis",      label:"Choose your Chassis",         pool:"Chassis"},
-  {type:"Engine",       label:"Choose your Engine",          pool:"Engine"},
-  {type:"Chassis Mod",  label:"Choose a Chassis Mod",        pool:"Handling",  event:true},
-  {type:"Tuning",       label:"Choose Engine Upgrade",       pool:"Tuning",    event:true},
-  {type:"Drivetrain",   label:"Choose Drivetrain Upgrade",   pool:"Drivetrain",event:true},
-  {type:"Handling",     label:"Choose Handling Upgrade",     pool:"Handling",  event:true},
-  {type:"Brake Upgrade",label:"Choose Brake Upgrade",        pool:"Handling",  event:true},
-  {type:"Bonus",        label:"Choose Bonus Upgrade (any)",  pool:"bonus",     event:true},
-  {type:"Cosmetic",     label:"Add Cosmetics (pick freely)", pool:"Cosmetic",  event:"dice", multi:true},
+  {type:"Chassis",   label:"Choose your Chassis",       pool:"Chassis"},
+  {type:"Engine",    label:"Choose your Engine",        pool:"Engine"},
+  {type:"Tuning",    label:"Choose Engine Upgrade",     pool:"Tuning",  event:true},
+  {type:"Drivetrain",label:"Choose Drivetrain Upgrade", pool:"Drivetrain",event:true},
+  {type:"Handling",  label:"Choose Handling Upgrade",   pool:"Handling", event:true},
+  {type:"Bonus",     label:"Choose Bonus Upgrade (any)",pool:"bonus",    event:true},
+  {type:"Cosmetic",  label:"Choose Cosmetics",          pool:"Cosmetic", event:"dice", max:2},
 ];
 
 let state = {
   roomCode: null, playerId: null, playerName: null, isHost: false,
-  gameData: null, myBuild: [], myBudget: 100000, currentRound: 0,
+  gameData: null, myBuild: [], myBudget: 75000, currentRound: 0,
   selectedCard: null, eventQueue: [], myHP: 0, myCosmeticCount: 0,
   myIllegal: false, myStatMods: {acc:0,top:0,hand:0,brake:0,rel:0,fuel:0},
   powerCardLooksBonus: 0,
@@ -753,7 +733,7 @@ window.startGame = async function() {
     roundCards: [],
     picks: {},
     playerBuilds: Object.fromEntries(playerIds.map(id => [id, []])),
-    playerBudgets: Object.fromEntries(playerIds.map(id => [id, 100000])),
+    playerBudgets: Object.fromEntries(playerIds.map(id => [id, 75000])),
     playerHP: Object.fromEntries(playerIds.map(id => [id, 0])),
     playerReady: Object.fromEntries(playerIds.map(id => [id, false])),
   });
@@ -810,18 +790,9 @@ function renderGame(data) {
   const myPick = data.picks && data.picks[state.playerId] && data.picks[state.playerId][round];
 
 
-  const isMulti = roundDef && roundDef.multi;
-  const myPickRaw = data.picks && data.picks[state.playerId] && data.picks[state.playerId][round];
-  const myDoneMulti = isMulti && Array.isArray(myPickRaw) && myPickRaw.includes('__done__');
-  const myPick = isMulti ? myDoneMulti : myPickRaw;
-
-  // Host checks allPicked on every update
+  // Every client checks allPicked — host fires advanceRound
   const picksNow = data.picks || {};
-  const allPicked = data.playerOrder.every(pid => {
-    const v = picksNow[pid] && picksNow[pid][round];
-    if (isMulti) return Array.isArray(v) && v.includes('__done__');
-    return v !== undefined && v !== null;
-  });
+  const allPicked = data.playerOrder.every(pid => picksNow[pid] && picksNow[pid][round] !== undefined);
   const amHost = state.isHost || (data.host === state.playerId);
   if (allPicked && amHost && !state.advancing) {
     state.advancing = true;
@@ -829,74 +800,51 @@ function renderGame(data) {
     advanceRound(data);
     return;
   }
-
+  // Render available cards for this round
   const poolKey = roundDef.pool;
-  const poolIds = data.piles[poolKey] || [];
-  const roundCardIds = [...poolIds];
+  let poolIds = data.piles[poolKey] || [];
   const numPlayers = data.numPlayers;
+  const dealSize = Math.min(numPlayers + 2, poolIds.length);
+  const roundCardIds = poolIds.slice(0, dealSize);
 
-  // Taken cards (single-pick only)
+  // Track taken cards
   const takenIds = new Set();
-  if (!isMulti && data.picks) {
-    Object.values(data.picks).forEach(pp => {
-      const v = pp[round];
-      if (Array.isArray(v)) v.forEach(id => takenIds.add(id));
-      else if (v) takenIds.add(v);
+  if (data.picks) {
+    Object.values(data.picks).forEach(playerPicks => {
+      if (playerPicks[round]) takenIds.add(playerPicks[round]);
     });
   }
 
   const grid = document.getElementById('cards-grid');
 
-  if (!isMulti && myPick) {
+  if (myPick) {
+    // Show waiting state
     grid.innerHTML = '';
     document.getElementById('waiting-overlay').style.display = 'flex';
-    const readyCount = Object.values(data.picks||{}).filter(p => p[round]).length;
+    const readyCount = Object.values(data.picks || {}).filter(p => p[round]).length;
     document.getElementById('wait-msg').textContent = `Waiting for others... (${readyCount}/${numPlayers} picked)`;
     renderBuildSlots(data);
-    renderStatsPanel(data);
-    return;
-  }
-
-  if (myDoneMulti) {
-    grid.innerHTML = '';
-    document.getElementById('waiting-overlay').style.display = 'flex';
-    const readyCount = Object.values(data.picks||{}).filter(p => {
-      const v = p[round]; return Array.isArray(v) && v.includes('__done__');
-    }).length;
-    document.getElementById('wait-msg').textContent = `Cosmetics locked. Waiting... (${readyCount}/${numPlayers} done)`;
-    renderBuildSlots(data);
-    renderStatsPanel(data);
     return;
   }
 
   document.getElementById('waiting-overlay').style.display = 'none';
 
+  // Check if event needs showing
   if (data.pendingEvent && data.pendingEvent.targetPlayer === state.playerId && !data.pendingEvent.resolved) {
     showEventOverlay(data.pendingEvent);
     return;
   }
 
-  const myCosmetics = isMulti ? (Array.isArray(myPickRaw) ? myPickRaw.filter(id => id !== '__done__') : []) : [];
-
   grid.innerHTML = roundCardIds.map(id => {
     const card = getCard(id);
     if (!card) return '';
-    const taken = isMulti ? myCosmetics.includes(id) : takenIds.has(id);
+    const taken = takenIds.has(id);
     const canAfford = myBudget >= card.cost;
     const disabled = taken || !canAfford;
     return renderCard(card, disabled, taken, !canAfford);
   }).join('');
 
-  if (isMulti) {
-    const n = myCosmetics.length;
-    grid.innerHTML += `<div style="grid-column:1/-1;padding:.75rem 0">
-      <div style="color:var(--muted);font-size:.85rem;margin-bottom:.5rem">You've picked ${n} cosmetic${n!==1?'s':''}. Pick more or tap Done.</div>
-      <button class="btn btn-primary" style="width:100%" onclick="doneMultiRound()">✓ Done — Lock In Cosmetics</button>
-    </div>`;
-  }
-
   renderBuildSlots(data);
-  renderStatsPanel(data);
 }
 
 const CARD_ICONS = {
@@ -950,15 +898,8 @@ function renderBuildSlots(data) {
   const myPicksAll = (data.picks && data.picks[state.playerId]) || {};
   const slotsEl = document.getElementById('build-slots');
   slotsEl.innerHTML = ROUNDS.map((r, i) => {
-    const v = myPicksAll[i];
-    if (r.multi) {
-      const arr = Array.isArray(v) ? v.filter(id => id !== '__done__') : [];
-      return `<div class="build-slot ${arr.length?'filled':''}">
-        <div class="slot-label">${r.type}</div>
-        <div class="slot-name">${arr.length ? arr.length+' picked' : '—'}</div>
-      </div>`;
-    }
-    const card = v ? getCard(v) : null;
+    const pickedId = myPicksAll[i];
+    const card = pickedId ? getCard(pickedId) : null;
     return `<div class="build-slot ${card?'filled':''}">
       <div class="slot-label">${r.type}</div>
       <div class="slot-name">${card ? card.name : '—'}</div>
@@ -970,50 +911,28 @@ function renderBuildSlots(data) {
 window.pickCard = async function(cardId) {
   const data = state.gameData;
   const round = data.round;
-  const roundDef = ROUNDS[round];
   const card = getCard(cardId);
   const myBudget = data.playerBudgets[state.playerId];
-  if (!card || myBudget < card.cost) { toast("Can't afford this!"); return; }
 
-  if (roundDef.multi) {
-    const existing = (data.picks && data.picks[state.playerId] && data.picks[state.playerId][round]) || [];
-    const arr = Array.isArray(existing) ? existing : [];
-    if (arr.includes(cardId)) { toast("Already picked!"); return; }
-    const newArr = [...arr, cardId];
-    await update(roomRef(), {
-      [`picks/${state.playerId}/${round}`]: newArr,
-      [`playerBudgets/${state.playerId}`]: myBudget - card.cost,
-    });
-    toast(`Added: ${card.name}`);
-    return;
-  }
+  if (myBudget < card.cost) { toast("Can't afford this!"); return; }
 
+  // Check already taken
   const takenIds = new Set();
   if (data.picks) {
-    Object.values(data.picks).forEach(p => {
-      const v = p[round];
-      if (Array.isArray(v)) v.forEach(id => takenIds.add(id));
-      else if (v) takenIds.add(v);
-    });
+    Object.values(data.picks).forEach(p => { if (p[round]) takenIds.add(p[round]); });
   }
   if (takenIds.has(cardId)) { toast("Already taken!"); return; }
 
-  await update(roomRef(), {
-    [`picks/${state.playerId}/${round}`]: cardId,
-    [`playerBudgets/${state.playerId}`]: myBudget - card.cost,
-    [`playerHP/${state.playerId}`]: (data.playerHP[state.playerId]||0) + (card.hp||0),
-  });
-};
+  const newBudget = myBudget - card.cost;
+  const newHP = (data.playerHP[state.playerId] || 0) + (card.hp || 0);
 
-window.doneMultiRound = async function() {
-  const data = state.gameData;
-  const round = data.round;
-  const cur = (data.picks && data.picks[state.playerId] && data.picks[state.playerId][round]) || [];
-  const arr = Array.isArray(cur) ? cur.filter(id => id !== '__done__') : [];
-  await update(roomRef(), {
-    [`picks/${state.playerId}/${round}`]: [...arr, '__done__'],
-  });
-  toast("Cosmetics locked in!");
+  const updates = {};
+  updates[`picks/${state.playerId}/${round}`] = cardId;
+  updates[`playerBudgets/${state.playerId}`] = newBudget;
+  updates[`playerHP/${state.playerId}`] = newHP;
+
+  await update(roomRef(), updates);
+  // advanceRound is handled by the Firebase listener in renderGame
 };
 
 async function advanceRound(data) {
@@ -1027,7 +946,7 @@ async function advanceRound(data) {
   // Remove picked cards from pile
   const poolKey = roundDef.pool;
   const numPlayers = data.numPlayers;
-  const dealSize = (data.piles[poolKey]||[]).length;
+  const dealSize = Math.min(numPlayers + 2, (data.piles[poolKey]||[]).length);
   const pickedThisRound = Object.values(data.picks).map(p => p[round]).filter(Boolean);
   const newPile = (data.piles[poolKey]||[]).slice(dealSize);
 
@@ -1055,7 +974,7 @@ async function advanceRound(data) {
   }
 
   // Advance round or end game
-  if (round < 8) {
+  if (round < 6) {
     updates['round'] = round + 1;
     // Rotate first picker
     updates['currentPickerIndex'] = (data.currentPickerIndex + 1) % data.numPlayers;
@@ -1254,11 +1173,7 @@ async function finaliseResults(data) {
 
   playerIds.forEach(pid => {
     const picks = data.picks[pid] || {};
-    const cardIds = [];
-    Object.values(picks).forEach(v => {
-      if (Array.isArray(v)) v.filter(id => id !== '__done__').forEach(id => cardIds.push(id));
-      else if (v) cardIds.push(v);
-    });
+    const cardIds = Object.values(picks);
     const cards = cardIds.map(id => getCard(id)).filter(Boolean);
     const stats = calcStats(cards);
     const budget = data.playerBudgets[pid] || 0;
@@ -1311,6 +1226,7 @@ function renderResults(data) {
 
   const playerIds = data.playerOrder;
   // Confetti for winner
+  if (!state.confettiFired) { state.confettiFired = true; launchConfetti(); }
   const content = document.getElementById('results-content');
   const votePanels = document.getElementById('vote-panels');
 
@@ -1421,12 +1337,10 @@ window.addEventListener('load', () => {
       }
     } catch(e) {}
   }
-  function hideSplash() {
-    const s = document.getElementById('splash');
-    if (s) { s.classList.add('hide'); setTimeout(() => { s.style.display='none'; }, 300); }
-  }
-  setTimeout(hideSplash, 800);
-  setTimeout(hideSplash, 2500);
+  setTimeout(() => {
+    document.getElementById('splash').classList.add('hide');
+    setTimeout(() => { document.getElementById('splash').style.display = 'none'; }, 500);
+  }, 1800);
 });
 
 // ── REJOIN ────────────────────────────────────────────────────────────────
@@ -1479,7 +1393,7 @@ function saveSession() {
 
 // ── ROUND PROGRESS ─────────────────────────────────────────────────────────
 function updateProgress(round) {
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < 7; i++) {
     const dot = document.getElementById('pd' + i);
     if (!dot) continue;
     dot.className = 'progress-dot' + (i < round ? ' done' : i === round ? ' active' : '');
@@ -1553,260 +1467,6 @@ function launchConfetti() {
     setTimeout(() => el.remove(), 4000);
   }
 }
-
-
-// ── LIVE STATS PANEL ──────────────────────────────────────────────
-function renderStatsPanel(data) {
-  const panel = document.getElementById('stats-panel');
-  const grid = document.getElementById('stats-grid');
-  const bpEl = document.getElementById('stats-buildpts');
-  if (!panel) return;
-  const myPicksAll = (data.picks && data.picks[state.playerId]) || {};
-  const allCardIds = [];
-  ROUNDS.forEach((r,i) => {
-    const v = myPicksAll[i];
-    if (!v) return;
-    if (Array.isArray(v)) v.filter(id => id !== '__done__').forEach(id => allCardIds.push(id));
-    else allCardIds.push(v);
-  });
-  if (!allCardIds.length) { panel.style.display='none'; return; }
-  panel.style.display='block';
-  const cards = allCardIds.map(id => getCard(id)).filter(Boolean);
-  const s = {acc:0,top:0,hand:0,brake:0,rel:0,fuel:0};
-  cards.forEach(c => { s.acc+=c.acc||0; s.top+=c.top||0; s.hand+=c.hand||0; s.brake+=c.brake||0; s.rel+=c.rel||0; s.fuel+=c.fuel||0; });
-  const bp = +(s.acc+s.top+s.hand+s.brake+s.rel+s.fuel).toFixed(2);
-  bpEl.textContent = 'Build Pts: '+bp;
-  grid.innerHTML = [['Acc',s.acc],['Top',s.top],['Hand',s.hand],['Brake',s.brake],['Rel',s.rel],['Fuel',s.fuel]].map(([l,v]) =>
-    `<div style="background:var(--dark3);border-radius:5px;padding:.3rem .2rem;text-align:center">
-      <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase">${l}</div>
-      <div style="font-size:.85rem;font-weight:700;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--muted)'};font-family:'Barlow Condensed',sans-serif">${v>0?'+':''}${v.toFixed(1)}</div>
-    </div>`
-  ).join('');
-}
-
-// ── VOTE CHECK ────────────────────────────────────────────────────
-function allVotesCast(data) {
-  const lv = data.looksVotes||{}, cv = data.creativityVotes||{};
-  return (data.playerOrder||[]).every(pid => lv[pid] && cv[pid]);
-}
-
-// ── DEV TEST MODE ─────────────────────────────────────────────────
-let _logoTaps = 0, _logoTimer = null;
-window.handleLogoTap = function() {
-  _logoTaps++;
-  clearTimeout(_logoTimer);
-  _logoTimer = setTimeout(() => { _logoTaps=0; }, 2000);
-  if (_logoTaps >= 5) {
-    _logoTaps = 0;
-    const btn = document.getElementById('dev-mode-btn');
-    btn.style.display = btn.style.display==='none' ? 'block' : 'none';
-    toast('🔧 Dev mode');
-  }
-};
-
-window.startTestMode = function() {
-  state.roomCode='DEVTEST'; state.playerId='dev_p1';
-  state.playerName='Dev (You)'; state.isHost=true; state.devMode=true;
-  const piles={};
-  Object.entries(CARDS).forEach(([t,cards]) => { piles[t]=shuffle(cards).map(c=>c.id); });
-  piles.bonus=shuffle([...CARDS.Tuning,...CARDS.Drivetrain,...CARDS.Handling]).map(c=>c.id);
-  piles.power=shuffle(POWER_CARDS).map(c=>c.id);
-  state.gameData={
-    host:'dev_p1', status:'playing', round:0, piles,
-    eventDeck:shuffle(EVENTS).map(e=>e.id),
-    numPlayers:2, playerOrder:['dev_p1','dev_bot'],
-    currentPickerIndex:0, picks:{}, playerBuilds:{},
-    playerBudgets:{'dev_p1':100000,'dev_bot':100000},
-    playerHP:{'dev_p1':0,'dev_bot':0},
-    players:{'dev_p1':{name:'Dev (You)',host:true},'dev_bot':{name:'Bot',host:false}},
-  };
-  showScreen('game');
-  renderGame(state.gameData);
-};
-
-function devBotPick() {
-  const data=state.gameData, round=data.round;
-  if (round===undefined||round>8) return;
-  const rd=ROUNDS[round], pid='dev_bot';
-  if (data.picks&&data.picks[pid]&&data.picks[pid][round]!==undefined) return;
-  const pool=data.piles[rd.pool]||[], budget=data.playerBudgets[pid]||100000;
-  if (!data.picks) data.picks={};
-  if (!data.picks[pid]) data.picks[pid]={};
-  if (rd.multi) {
-    const picks=[];
-    let rem=budget;
-    for (const id of pool.slice(0,4)) {
-      const card=getCard(id);
-      if (card&&rem>=card.cost) { picks.push(id); rem-=card.cost; if(picks.length>=2) break; }
-    }
-    picks.push('__done__');
-    data.picks[pid][round]=picks;
-    data.playerBudgets[pid]=rem;
-  } else {
-    const myTaken=new Set();
-    if (data.picks['dev_p1']) Object.values(data.picks['dev_p1']).forEach(v=>{ if(Array.isArray(v)) v.forEach(id=>myTaken.add(id)); else if(v) myTaken.add(v); });
-    const pick=pool.find(id=>{ const c=getCard(id); return c&&budget>=c.cost&&!myTaken.has(id); });
-    if (pick) { data.picks[pid][round]=pick; const c=getCard(pick); data.playerBudgets[pid]-=c.cost||0; data.playerHP[pid]=(data.playerHP[pid]||0)+(c.hp||0); }
-  }
-}
-
-function devCheckAdvance() {
-  const data=state.gameData, round=data.round;
-  if (round===undefined) return;
-  const rd=ROUNDS[round], isMulti=rd&&rd.multi;
-  const all=data.playerOrder.every(pid=>{
-    const v=data.picks&&data.picks[pid]&&data.picks[pid][round];
-    return isMulti ? Array.isArray(v)&&v.includes('__done__') : v!==undefined&&v!==null;
-  });
-  if (all) setTimeout(devAdvance, 400);
-  else renderGame(data);
-}
-
-function devAdvance() {
-  const data=state.gameData, round=data.round;
-  if (round===undefined) return;
-  const rd=ROUNDS[round];
-  data.piles[rd.pool]=(data.piles[rd.pool]||[]).slice(25);
-  if (rd.event===true&&data.eventDeck&&data.eventDeck.length) {
-    data.pendingEventId=data.eventDeck[0];
-    data.eventDeck=data.eventDeck.slice(1);
-    data.eventResolved={};
-  }
-  if (round<8) { data.round=round+1; renderGame(data); toast('Round '+(round+2)+' — '+ROUNDS[round+1].type); }
-  else { data.status='power'; data.powerDecisions={}; renderPowerScreen(data); }
-}
-
-// Patch window functions for dev mode
-const _origPickCard=window.pickCard;
-window.pickCard=async function(cardId) {
-  if (!state.devMode) { return _origPickCard(cardId); }
-  const data=state.gameData, round=data.round, rd=ROUNDS[round];
-  const card=getCard(cardId), budget=data.playerBudgets[state.playerId];
-  if (!card||budget<card.cost) { toast("Can't afford!"); return; }
-  if (!data.picks) data.picks={}; if (!data.picks[state.playerId]) data.picks[state.playerId]={};
-  if (rd.multi) {
-    const cur=data.picks[state.playerId][round]||[];
-    const arr=Array.isArray(cur)?cur:[];
-    if (arr.includes(cardId)) { toast("Already picked!"); return; }
-    data.picks[state.playerId][round]=[...arr,cardId];
-    data.playerBudgets[state.playerId]-=card.cost;
-    toast('Added: '+card.name);
-    renderGame(data);
-  } else {
-    data.picks[state.playerId][round]=cardId;
-    data.playerBudgets[state.playerId]-=card.cost;
-    data.playerHP[state.playerId]=(data.playerHP[state.playerId]||0)+(card.hp||0);
-    devBotPick(); devCheckAdvance();
-  }
-};
-
-const _origDone=window.doneMultiRound;
-window.doneMultiRound=async function() {
-  if (!state.devMode) { return _origDone(); }
-  const data=state.gameData, round=data.round;
-  if (!data.picks) data.picks={}; if (!data.picks[state.playerId]) data.picks[state.playerId]={};
-  const cur=data.picks[state.playerId][round]||[];
-  const arr=Array.isArray(cur)?cur.filter(id=>id!=='__done__'):[];
-  data.picks[state.playerId][round]=[...arr,'__done__'];
-  toast("Locked in!");
-  devBotPick(); devCheckAdvance();
-};
-
-const _origDismiss=window.dismissEvent;
-window.dismissEvent=async function() {
-  document.getElementById('event-overlay').style.display='none';
-  if (state.devMode) { renderGame(state.gameData); return; }
-  await update(roomRef(), {[`eventResolved/${state.playerId}`]:true});
-};
-
-const _origSkip=window.skipPowerCard;
-window.skipPowerCard=async function() {
-  if (!state.devMode) { return _origSkip(); }
-  devFinalise();
-};
-
-const _origBuy=window.buyPowerCard;
-window.buyPowerCard=async function() {
-  if (!state.devMode) { return _origBuy(); }
-  const data=state.gameData, budget=data.playerBudgets[state.playerId];
-  if (budget<2500) { toast("Not enough!"); return; }
-  const pile=data.piles.power||[];
-  if (!pile.length) { toast("None left!"); return; }
-  const cardId=pile[0], card=POWER_CARDS.find(p=>p.id===cardId);
-  if (!card) return;
-  data.piles.power=pile.slice(1);
-  data.playerBudgets[state.playerId]-=2500-(card.cashBonus||0);
-  if (!data.powerDecisions) data.powerDecisions={};
-  if (!data.powerDecisions[state.playerId]) data.powerDecisions[state.playerId]={cards:[],done:false};
-  data.powerDecisions[state.playerId].cards.push(cardId);
-  document.getElementById('pc-name').textContent=card.name;
-  document.getElementById('pc-desc').textContent=card.desc;
-  document.getElementById('power-card-reveal').style.display='block';
-  document.getElementById('power-budget').textContent=fmt(data.playerBudgets[state.playerId]);
-  const needsDice=card.desc&&(card.desc.toLowerCase().includes('roll')||card.desc.toLowerCase().includes('d6'));
-  document.getElementById('power-dice-section').style.display=needsDice?'block':'none';
-  if (needsDice) { document.getElementById('power-dice-btn').disabled=false; document.getElementById('power-dice-result').textContent=''; document.getElementById('power-dice-outcome').textContent=''; }
-  const boughtEl=document.getElementById('power-cards-bought');
-  if (boughtEl) boughtEl.innerHTML=data.powerDecisions[state.playerId].cards.map(cid=>{ const pc=POWER_CARDS.find(p=>p.id===cid); return pc?`<div style="background:var(--dark3);border:1px solid var(--dark4);border-radius:6px;padding:.5rem;font-size:.85rem"><span style="color:var(--gold);font-weight:600">${pc.name}</span></div>`:'';}).join('');
-  toast('Got: '+card.name+'!');
-};
-
-const _origCastVote=window.castVote;
-window.castVote=async function(type,pid) {
-  if (!state.devMode) { return _origCastVote(type,pid); }
-  if (!state.gameData.looksVotes) state.gameData.looksVotes={};
-  if (!state.gameData.creativityVotes) state.gameData.creativityVotes={};
-  if (type==='looks') state.gameData.looksVotes[state.playerId]=pid;
-  if (type==='creativity') state.gameData.creativityVotes[state.playerId]=pid;
-  const others=state.gameData.playerOrder.filter(p=>p!=='dev_bot');
-  if (!state.gameData.looksVotes['dev_bot']) state.gameData.looksVotes['dev_bot']=others[0];
-  if (!state.gameData.creativityVotes['dev_bot']) state.gameData.creativityVotes['dev_bot']=others[0];
-  toast('Vote cast!');
-  renderResults(state.gameData);
-};
-
-const _origCastVoteFromViewer=window.castVoteFromViewer;
-window.castVoteFromViewer=async function(type,pid) {
-  if (!state.devMode) { return _origCastVoteFromViewer(type,pid); }
-  await castVote(type,pid);
-  viewBuild(pid);
-};
-
-function devFinalise() {
-  const data=state.gameData, pids=data.playerOrder, scores={};
-  pids.forEach(pid=>{
-    const picks=data.picks[pid]||{}, cardIds=[];
-    Object.values(picks).forEach(v=>{ if(Array.isArray(v)) v.filter(id=>id!=='__done__').forEach(id=>cardIds.push(id)); else if(v) cardIds.push(v); });
-    const cards=cardIds.map(id=>getCard(id)).filter(Boolean);
-    const s={acc:0,top:0,hand:0,brake:0,rel:0,fuel:0,hp:0};
-    cards.forEach(c=>{ s.acc+=c.acc||0; s.top+=c.top||0; s.hand+=c.hand||0; s.brake+=c.brake||0; s.rel+=c.rel||0; s.fuel+=c.fuel||0; s.hp+=c.hp||0; });
-    scores[pid]={ stats:s, budget:data.playerBudgets[pid]||0, hp:data.playerHP[pid]||0,
-      hasIllegal:cards.some(c=>c.legal===false),
-      buildPts:parseFloat((s.acc+s.top+s.hand+s.brake+s.rel+s.fuel).toFixed(2)), cards:cardIds };
-  });
-  const maxHP=Math.max(...pids.map(p=>scores[p].hp));
-  const maxM=Math.max(...pids.map(p=>scores[p].budget));
-  const maxBP=Math.max(...pids.map(p=>scores[p].buildPts));
-  const maxRel=Math.max(...pids.map(p=>scores[p].stats.rel));
-  pids.forEach(pid=>{ const s=scores[pid];
-    s.hpBonus=s.hp>=maxHP?3:0; s.moneyBonus=s.budget>=maxM?1:0;
-    s.roadworthyBonus=!s.hasIllegal?1:0;
-    s.perfVote=s.buildPts>=maxBP?2:0; s.relVote=s.stats.rel>=maxRel?3:0;
-    s.looksVote=0; s.creativityVote=0;
-  });
-  data.scores=scores; data.status='results'; data.votingOpen=true;
-  data.looksVotes={}; data.creativityVotes={};
-  renderResults(data);
-}
-
-// ── DICE ROLLER FOR POWER CARDS ───────────────────────────────────
-window.rollPowerDice=function() {
-  const roll=Math.floor(Math.random()*6)+1;
-  const faces=['⚀','⚁','⚂','⚃','⚄','⚅'];
-  document.getElementById('power-dice-result').textContent=faces[roll-1]+' '+roll;
-  document.getElementById('power-dice-btn').disabled=true;
-  document.getElementById('power-dice-outcome').textContent=roll<=3?'Result: '+roll+' — $500':'Result: '+roll+' — $1,000';
-};
 
 </script>
 </body>
