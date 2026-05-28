@@ -84,6 +84,22 @@
   .card-hp{font-size:.7rem;color:var(--gold);font-weight:600}
 
   /* ── MY BUILD ── */
+
+  /* ── LIVE STATS BAR ── */
+  .stats-bar{background:var(--dark2);border-top:1px solid var(--dark4);padding:.7rem 1rem;flex-shrink:0}
+  .stats-bar-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem}
+  .stats-bar-title{font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .stats-verdict{font-family:'Barlow Condensed',sans-serif;font-size:.95rem;font-weight:700;padding:.1rem .6rem;border-radius:99px}
+  .stats-rows{display:flex;flex-direction:column;gap:.3rem}
+  .sbar-row{display:flex;align-items:center;gap:.5rem}
+  .sbar-label{width:42px;font-size:.7rem;color:var(--muted);text-transform:uppercase;flex-shrink:0;text-align:right}
+  .sbar-track{flex:1;height:8px;background:var(--dark4);border-radius:4px;overflow:hidden;position:relative}
+  .sbar-fill{height:100%;border-radius:4px;transition:width .4s ease}
+  .sbar-val{width:34px;font-size:.75rem;font-weight:700;color:var(--text);flex-shrink:0;text-align:right;font-family:'Barlow Condensed',sans-serif}
+  .legal-chip{display:inline-flex;align-items:center;gap:.3rem;font-size:.8rem;font-weight:600;padding:.15rem .6rem;border-radius:99px}
+  .legal-ok{background:rgba(46,204,113,.15);color:#2ecc71}
+  .legal-bad{background:rgba(231,76,60,.15);color:#e74c3c}
+
   .my-build{background:var(--dark2);border-top:1px solid var(--dark4);padding:1rem;flex-shrink:0}
   .build-title{font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem}
   .build-slots{display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.25rem}
@@ -301,6 +317,21 @@
   <div class="cards-section" id="cards-section">
     <div class="section-title" id="round-type-label">Choose your Chassis</div>
     <div class="cards-grid" id="cards-grid"></div>
+  </div>
+
+  <div class="stats-bar" id="stats-bar" style="display:none">
+    <div class="stats-bar-head">
+      <div class="stats-bar-title">Live Stats</div>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <span class="legal-chip legal-ok" id="legal-chip">🟢 Roadworthy</span>
+        <span class="stats-verdict" id="stats-verdict"></span>
+      </div>
+    </div>
+    <div class="stats-rows" id="stats-rows"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:.4rem;font-size:.75rem;color:var(--muted)">
+      <span>Build Points: <strong id="sbar-buildpts" style="color:var(--orange)">0</strong></span>
+      <span>Horsepower: <strong id="sbar-hp" style="color:var(--gold)">0</strong></span>
+    </div>
   </div>
 
   <div class="my-build">
@@ -908,6 +939,71 @@ function renderBuildSlots(data) {
       <div class="slot-name">${card ? card.name : '—'}</div>
     </div>`;
   }).join('');
+  renderStatsBar(data);
+}
+
+function renderStatsBar(data) {
+  const bar = document.getElementById('stats-bar');
+  if (!bar) return;
+  const myPicksAll = (data.picks && data.picks[state.playerId]) || {};
+  const cards = [];
+  ROUNDS.forEach((r, i) => {
+    const id = myPicksAll[i];
+    if (id) { const card = getCard(id); if (card) cards.push(card); }
+  });
+  if (cards.length === 0) { bar.style.display = 'none'; return; }
+  bar.style.display = 'block';
+
+  const s = {acc:0,top:0,hand:0,brake:0,rel:0,fuel:0,hp:0};
+  let hasIllegal = false;
+  cards.forEach(c => {
+    s.acc+=c.acc||0; s.top+=c.top||0; s.hand+=c.hand||0;
+    s.brake+=c.brake||0; s.rel+=c.rel||0; s.fuel+=c.fuel||0; s.hp+=c.hp||0;
+    if (c.legal === false) hasIllegal = true;
+  });
+  const buildPts = +(s.acc+s.top+s.hand+s.brake+s.rel+s.fuel).toFixed(2);
+
+  // Stat rows — bar fill scaled, centre is zero
+  const statDefs = [
+    ['Acc', s.acc], ['Top', s.top], ['Hand', s.hand],
+    ['Brake', s.brake], ['Rel', s.rel], ['Fuel', s.fuel],
+  ];
+  // Max absolute value for scaling (min 4 so small builds don't look maxed)
+  const maxAbs = Math.max(4, ...statDefs.map(([,v]) => Math.abs(v)));
+  document.getElementById('stats-rows').innerHTML = statDefs.map(([label, v]) => {
+    const pct = Math.min(100, Math.abs(v) / maxAbs * 100);
+    const colour = v > 0 ? 'var(--green)' : v < 0 ? 'var(--red)' : 'var(--muted)';
+    return `<div class="sbar-row">
+      <div class="sbar-label">${label}</div>
+      <div class="sbar-track"><div class="sbar-fill" style="width:${pct}%;background:${colour}"></div></div>
+      <div class="sbar-val" style="color:${colour}">${v>0?'+':''}${v.toFixed(2)}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('sbar-buildpts').textContent = buildPts;
+  document.getElementById('sbar-hp').textContent = s.hp;
+
+  // Legal chip
+  const legalChip = document.getElementById('legal-chip');
+  if (hasIllegal) {
+    legalChip.className = 'legal-chip legal-bad';
+    legalChip.textContent = '🔴 Not roadworthy';
+  } else {
+    legalChip.className = 'legal-chip legal-ok';
+    legalChip.textContent = '🟢 Roadworthy';
+  }
+
+  // Verdict — how's the build doing
+  const verdict = document.getElementById('stats-verdict');
+  let label, bg, fg;
+  if (buildPts >= 18)      { label = 'Beast 🔥'; bg = 'rgba(46,204,113,.2)'; fg = '#2ecc71'; }
+  else if (buildPts >= 13) { label = 'Strong 💪'; bg = 'rgba(46,204,113,.15)'; fg = '#2ecc71'; }
+  else if (buildPts >= 8)  { label = 'Solid 👍'; bg = 'rgba(241,196,15,.15)'; fg = '#f1c40f'; }
+  else if (buildPts >= 4)  { label = 'Needs work'; bg = 'rgba(241,196,15,.15)'; fg = '#f1c40f'; }
+  else                     { label = 'Struggling'; bg = 'rgba(231,76,60,.15)'; fg = '#e74c3c'; }
+  verdict.textContent = label;
+  verdict.style.background = bg;
+  verdict.style.color = fg;
 }
 
 // ── PICK CARD ────────────────────────────────────────────────────────────────
