@@ -619,7 +619,7 @@ const POWER_CARDS = [
   {id:814,name:"Dad's Old Tool Set",desc:"Burson tools: +0.5 Reliability",rel:0.5},
   {id:815,name:"Free Alignment Voucher",desc:"Bob Jane T-Marts: +0.5 Handling + +0.5 Fuel Economy",hand:0.5,fuel:0.5},
   {id:816,name:"Swap-Meet Flip",desc:"Scored at Ballarat Swap Meet! Swap one cosmetic for $1,000",cashBonus:1000},
-  {id:817,name:"Lucky Door Prize",desc:"Won at Sandown Raceway! Roll d6: 1-3 = $500; 4-6 = $1,000",cashBonus:750},
+  {id:817,name:"Lucky Door Prize",desc:"Won at Sandown Raceway! Roll d6: 1-3 = $500; 4-6 = $1,000",diceRoll:true},
   {id:818,name:"Second-Hand Tyre Deal",desc:"Cheap Bob Jane tyres: +0.5 Handling",hand:0.5},
   {id:819,name:"Online Coupon Code",desc:"Autobarn deal! +$1,000",cashBonus:1000},
   {id:820,name:"Dyno Day Tune",desc:"+0.5 Acceleration +25 HP",acc:0.5,hp:25},
@@ -1231,8 +1231,7 @@ window.buyPowerCard = async function() {
   document.getElementById('power-card-reveal').style.display = 'block';
   document.getElementById('power-btns').style.display = 'none';
 
-  const d = card.desc ? card.desc.toLowerCase() : '';
-  const needsDice = d.includes('roll') && (d.includes('d6') || d.includes('dice') || d.includes('1-3') || d.includes('4-6'));
+  const needsDice = card.diceRoll === true;
 
   if (needsDice) {
     state.pendingWildCard = card;
@@ -1254,9 +1253,10 @@ window.rollWildCardDice = function() {
   document.getElementById('pc-dice-result').textContent = ['⚀','⚁','⚂','⚃','⚄','⚅'][roll-1] + ' ' + roll;
   document.getElementById('pc-dice-btn').disabled = true;
   document.getElementById('pc-dice-btn').style.display = 'none';
-  let bonusCash = roll <= 3 ? 500 : 1000;
+  // Lucky Door Prize: 1-3 = $500, 4-6 = $1,000
+  const bonusCash = roll <= 3 ? 500 : 1000;
   state.pendingDiceBonus = bonusCash;
-  document.getElementById('pc-dice-outcome').textContent = `Rolled ${roll} — $${bonusCash} bonus!`;
+  document.getElementById('pc-dice-outcome').textContent = `Rolled ${roll} — you win $${bonusCash.toLocaleString()}!`;
   document.getElementById('pc-dice-continue').style.display = 'inline-block';
 };
 
@@ -1808,8 +1808,7 @@ window.buyPowerCard = async function() {
   document.getElementById('pc-desc').textContent = card.desc;
   document.getElementById('power-card-reveal').style.display = 'block';
   document.getElementById('power-btns').style.display = 'none';
-  const dd = card.desc ? card.desc.toLowerCase() : '';
-  const needsDice = dd.includes('roll') && (dd.includes('d6') || dd.includes('dice') || dd.includes('1-3') || dd.includes('4-6'));
+  const needsDice = card.diceRoll === true;
   if (needsDice) {
     state.pendingWildCard = card;
     state._devPowerBudget = budget;
