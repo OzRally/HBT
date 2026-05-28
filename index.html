@@ -365,22 +365,29 @@
 <!-- POWER CARD SCREEN -->
 <div id="power-screen" class="screen">
   <div class="game-header">
-    <div class="round-badge">POWER CARD</div>
+    <div class="round-badge">WILD CARD</div>
     <div class="budget-display" id="power-budget"></div>
   </div>
   <div class="waiting-overlay">
     <div class="power-section" style="max-width:360px;width:100%">
-      <div class="power-title">⚡ Buy a Power Card?</div>
-      <div style="color:var(--muted);font-size:.9rem;margin-bottom:1rem">Costs $2,500 — blind draw. Could be amazing or useless.</div>
+      <div class="power-title">🎲 Draw a WILD CARD?</div>
+      <div style="color:var(--muted);font-size:.9rem;margin-bottom:1rem">$2,500 for a blind WILD CARD. Jackpot or dud, that is the gamble.</div>
       <div id="power-card-reveal" style="display:none;margin-bottom:1rem">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;font-weight:700;color:var(--gold)" id="pc-name"></div>
         <div style="font-size:.85rem;color:var(--muted);margin-top:.25rem" id="pc-desc"></div>
       </div>
       <div style="display:flex;gap:.75rem;justify-content:center" id="power-btns">
-        <button class="btn btn-primary" onclick="buyPowerCard()">Buy ($2,500)</button>
+        <button class="btn btn-primary" onclick="buyPowerCard()">Draw ($2,500)</button>
         <button class="btn btn-secondary" onclick="skipPowerCard()">Skip</button>
       </div>
       <div id="power-waiting" style="display:none;color:var(--muted);font-size:.9rem">Waiting for all players...</div>
+      <div id="pc-dice-section" style="display:none;margin-top:1rem;padding:1rem;background:var(--dark3);border-radius:10px;border:1px solid var(--gold)">
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:.5rem">This card needs a dice roll!</div>
+        <div id="pc-dice-result" style="font-family:'Barlow Condensed',sans-serif;font-size:3.5rem;font-weight:900;color:var(--gold);line-height:1;margin:.3rem 0"></div>
+        <button class="btn btn-primary" id="pc-dice-btn" onclick="rollWildCardDice()">Roll the Dice</button>
+        <div id="pc-dice-outcome" style="font-size:.95rem;color:var(--text);margin-top:.6rem;font-weight:600"></div>
+        <button class="btn btn-secondary btn-sm" id="pc-dice-continue" style="display:none;margin-top:.6rem" onclick="finishWildCardDice()">Continue</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1219,7 +1226,52 @@ window.buyPowerCard = async function() {
   const card = POWER_CARDS.find(c => c.id === cardId);
   if (!card) { skipPowerCard(); return; }
 
-  // Apply power card effects to local state
+  document.getElementById('pc-name').textContent = card.name;
+  document.getElementById('pc-desc').textContent = card.desc;
+  document.getElementById('power-card-reveal').style.display = 'block';
+  document.getElementById('power-btns').style.display = 'none';
+
+  const d = card.desc ? card.desc.toLowerCase() : '';
+  const needsDice = d.includes('roll') && (d.includes('d6') || d.includes('dice') || d.includes('1-3') || d.includes('4-6'));
+
+  if (needsDice) {
+    state.pendingWildCard = card;
+    document.getElementById('pc-dice-section').style.display = 'block';
+    document.getElementById('pc-dice-btn').disabled = false;
+    document.getElementById('pc-dice-btn').style.display = 'inline-block';
+    document.getElementById('pc-dice-result').textContent = '';
+    document.getElementById('pc-dice-outcome').textContent = '';
+    document.getElementById('pc-dice-continue').style.display = 'none';
+    return;
+  }
+  await commitWildCard(card, 0);
+};
+
+window.rollWildCardDice = function() {
+  const card = state.pendingWildCard;
+  if (!card) return;
+  const roll = Math.floor(Math.random() * 6) + 1;
+  document.getElementById('pc-dice-result').textContent = ['⚀','⚁','⚂','⚃','⚄','⚅'][roll-1] + ' ' + roll;
+  document.getElementById('pc-dice-btn').disabled = true;
+  document.getElementById('pc-dice-btn').style.display = 'none';
+  let bonusCash = roll <= 3 ? 500 : 1000;
+  state.pendingDiceBonus = bonusCash;
+  document.getElementById('pc-dice-outcome').textContent = `Rolled ${roll} — $${bonusCash} bonus!`;
+  document.getElementById('pc-dice-continue').style.display = 'inline-block';
+};
+
+window.finishWildCardDice = async function() {
+  const card = state.pendingWildCard;
+  const diceBonus = state.pendingDiceBonus || 0;
+  state.pendingWildCard = null;
+  state.pendingDiceBonus = 0;
+  document.getElementById('pc-dice-section').style.display = 'none';
+  await commitWildCard(card, diceBonus);
+};
+
+async function commitWildCard(card, diceBonus) {
+  const data = state.gameData;
+  const myBudget = data.playerBudgets[state.playerId];
   if (card.cashBonus) state.powerCash = (state.powerCash||0) + card.cashBonus;
   if (card.acc) state.myStatMods.acc = (state.myStatMods.acc||0) + card.acc;
   if (card.top) state.myStatMods.top = (state.myStatMods.top||0) + card.top;
@@ -1228,21 +1280,14 @@ window.buyPowerCard = async function() {
   if (card.rel) state.myStatMods.rel = (state.myStatMods.rel||0) + card.rel;
   if (card.fuel) state.myStatMods.fuel = (state.myStatMods.fuel||0) + card.fuel;
   if (card.looksVotes) state.powerCardLooksBonus = (state.powerCardLooksBonus||0) + card.looksVotes;
-
-  document.getElementById('pc-name').textContent = card.name;
-  document.getElementById('pc-desc').textContent = card.desc;
-  document.getElementById('power-card-reveal').style.display = 'block';
-  document.getElementById('power-btns').style.display = 'none';
-
-  const newBudget = myBudget - 2500 + (card.cashBonus||0);
+  const newBudget = myBudget - 2500 + (card.cashBonus||0) + diceBonus;
   await update(roomRef(), {
-    [`powerDecisions/${state.playerId}`]: {bought: true, cardId, powerCash: state.powerCash||0},
+    [`powerDecisions/${state.playerId}`]: {bought: true, cardId: card.id, powerCash: (state.powerCash||0) + diceBonus},
     [`playerBudgets/${state.playerId}`]: newBudget,
     [`piles/power`]: (data.piles.power||[]).slice(1),
   });
-
-  setTimeout(() => { document.getElementById('power-waiting').style.display = 'block'; }, 1500);
-};
+  setTimeout(() => { document.getElementById('power-waiting').style.display = 'block'; }, 1200);
+}
 
 window.skipPowerCard = async function() {
   document.getElementById('power-btns').style.display = 'none';
@@ -1759,14 +1804,43 @@ window.buyPowerCard = async function() {
   const card = POWER_CARDS.find(p => p.id === pile[0]);
   if (!card) return;
   d.piles.power = pile.slice(1);
-  d.playerBudgets[state.playerId] = budget - 2500 + (card.cashBonus||0);
   document.getElementById('pc-name').textContent = card.name;
   document.getElementById('pc-desc').textContent = card.desc;
   document.getElementById('power-card-reveal').style.display = 'block';
   document.getElementById('power-btns').style.display = 'none';
+  const dd = card.desc ? card.desc.toLowerCase() : '';
+  const needsDice = dd.includes('roll') && (dd.includes('d6') || dd.includes('dice') || dd.includes('1-3') || dd.includes('4-6'));
+  if (needsDice) {
+    state.pendingWildCard = card;
+    state._devPowerBudget = budget;
+    document.getElementById('pc-dice-section').style.display = 'block';
+    document.getElementById('pc-dice-btn').disabled = false;
+    document.getElementById('pc-dice-btn').style.display = 'inline-block';
+    document.getElementById('pc-dice-result').textContent = '';
+    document.getElementById('pc-dice-outcome').textContent = '';
+    document.getElementById('pc-dice-continue').style.display = 'none';
+    return;
+  }
+  d.playerBudgets[state.playerId] = budget - 2500 + (card.cashBonus||0);
   document.getElementById('power-budget').textContent = fmt(d.playerBudgets[state.playerId]);
   setTimeout(() => { document.getElementById('power-waiting').style.display = 'block'; }, 1500);
   setTimeout(_devFinalise, 2000);
+};
+
+const _origFinishDice2 = window.finishWildCardDice;
+window.finishWildCardDice = async function() {
+  if (!state.devMode) return _origFinishDice2();
+  const card = state.pendingWildCard;
+  const diceBonus = state.pendingDiceBonus || 0;
+  const d = state.gameData;
+  const budget = state._devPowerBudget || d.playerBudgets[state.playerId];
+  state.pendingWildCard = null;
+  state.pendingDiceBonus = 0;
+  document.getElementById('pc-dice-section').style.display = 'none';
+  d.playerBudgets[state.playerId] = budget - 2500 + (card.cashBonus||0) + diceBonus;
+  document.getElementById('power-budget').textContent = fmt(d.playerBudgets[state.playerId]);
+  document.getElementById('power-waiting').style.display = 'block';
+  setTimeout(_devFinalise, 800);
 };
 
 window.skipPowerCard = async function() {
