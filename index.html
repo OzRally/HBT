@@ -183,6 +183,8 @@
   .card.picked-anim{animation:cardPick .3s ease forwards}
   @keyframes cardPick{0%{transform:scale(1)}50%{transform:scale(.95);opacity:.7}100%{transform:scale(1);opacity:.4}}
   .card-icon{font-size:1.4rem;margin-bottom:.1rem}
+  .card-art{width:100%;aspect-ratio:240/150;background:linear-gradient(180deg,#141414,#0c0c0c);border-radius:7px;overflow:hidden;margin-bottom:.25rem;border:1px solid rgba(255,255,255,.04)}
+  .card-art svg{width:100%;height:100%;display:block}
   .card-cost{display:flex;align-items:center;gap:.3rem}
   .cost-bar{flex:1;height:3px;background:var(--dark4);border-radius:2px;overflow:hidden}
   .cost-fill{height:100%;background:var(--orange);border-radius:2px}
@@ -219,6 +221,8 @@
   .card-detail{background:var(--dark2);border-radius:var(--radius) var(--radius) 0 0;padding:1.5rem;width:100%;max-width:500px;border-top:3px solid var(--orange);animation:slideUp .25s ease}
   @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
   .modal-name{font-family:'Barlow Condensed',sans-serif;font-size:1.8rem;font-weight:900;color:var(--text);margin-bottom:.25rem}
+  .modal-art{width:100%;aspect-ratio:240/150;max-height:200px;background:linear-gradient(180deg,#141414,#0a0a0a);border-radius:8px;overflow:hidden;margin-bottom:.75rem;border:1px solid rgba(255,255,255,.06)}
+  .modal-art svg{width:100%;height:100%;display:block}
   .modal-cost{font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;color:var(--orange);font-weight:700;margin-bottom:.75rem}
   .modal-desc{color:var(--muted);font-size:.9rem;line-height:1.6;margin-bottom:1rem}
   .modal-stats{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:1rem}
@@ -231,6 +235,98 @@
     .cards-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
     .logo{font-size:7rem}
   }
+
+  /* ══ PODIUM SCREEN ══════════════════════════════════════════════ */
+  #podium-screen{background:var(--dark);position:relative;min-height:100vh;padding:0;overflow:hidden}
+  #podium-bg{position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:radial-gradient(ellipse at 50% 0%,rgba(216,90,48,.18) 0%,transparent 65%),
+               radial-gradient(ellipse at 80% 100%,rgba(241,196,15,.08) 0%,transparent 50%)}
+  #podium-bg::after{content:'';position:absolute;inset:0;
+    background:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(255,255,255,.02) 40px),
+               repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(255,255,255,.02) 40px)}
+  #podium-inner{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh;padding:1.5rem 1rem 6rem}
+
+  #podium-header{text-align:center;margin-bottom:1.5rem}
+  #podium-pretitle{font-family:'Barlow Condensed',sans-serif;font-size:.75rem;letter-spacing:4px;color:var(--orange);text-transform:uppercase;opacity:.8;margin-bottom:.2rem}
+  #podium-title{font-family:'Barlow Condensed',sans-serif;font-size:2.2rem;font-weight:900;color:var(--text);letter-spacing:-1px;line-height:1}
+
+  /* voting phase in podium */
+  #podium-voting-phase{flex:1;display:flex;flex-direction:column;gap:1rem}
+  .pvote-waiting{text-align:center;padding:2rem;color:var(--muted)}
+  .pvote-waiting .spinner{margin:0 auto 1rem}
+  .pvote-section{background:rgba(255,255,255,.04);border:1px solid var(--dark4);border-radius:var(--radius);padding:1rem}
+  .pvote-title{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:.75rem}
+  .pvote-option{background:var(--dark3);border:1px solid var(--dark4);border-radius:8px;padding:.65rem 1rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:.9rem;transition:all .15s;margin-bottom:.4rem}
+  .pvote-option:hover{border-color:var(--orange);background:rgba(216,90,48,.08)}
+  .pvote-option.voted{border-color:var(--orange);background:rgba(216,90,48,.12);color:var(--orange)}
+  .pvote-submitted{text-align:center;color:var(--green);font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:700;margin-top:.5rem}
+
+  /* reveal phase */
+  #podium-reveal-phase{flex:1;display:flex;flex-direction:column;gap:1rem}
+  #podium-stage{display:flex;flex-direction:column;gap:.75rem;flex:1}
+  #podium-controls{position:fixed;bottom:0;left:0;right:0;padding:1rem;background:linear-gradient(transparent,var(--dark) 40%);z-index:10;display:flex;flex-direction:column;align-items:center;gap:.5rem}
+  #podium-prompt{font-size:.8rem;color:var(--muted);text-align:center;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;text-transform:uppercase}
+  #podium-next-btn{min-width:200px;font-size:1.1rem;padding:1rem 2rem;box-shadow:0 4px 24px rgba(216,90,48,.4)}
+
+  /* podium place cards */
+  .podium-slot{opacity:0;transform:translateY(32px) scale(.97);transition:none;border-radius:var(--radius);overflow:hidden}
+  .podium-slot.revealed{animation:podiumReveal .55s cubic-bezier(.34,1.4,.64,1) forwards}
+  @keyframes podiumReveal{
+    0%{opacity:0;transform:translateY(40px) scale(.95)}
+    60%{opacity:1;transform:translateY(-6px) scale(1.01)}
+    100%{opacity:1;transform:translateY(0) scale(1)}
+  }
+
+  .podium-card{padding:1rem 1.2rem;border:1.5px solid var(--dark4);background:var(--dark2);border-radius:var(--radius);position:relative;overflow:hidden}
+  .podium-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .4s}
+  .podium-card.place-1{border-color:var(--gold);background:linear-gradient(135deg,rgba(241,196,15,.12),rgba(216,90,48,.08))}
+  .podium-card.place-1::before{background:linear-gradient(135deg,rgba(241,196,15,.06),transparent);opacity:1}
+  .podium-card.place-2{border-color:#aaa;background:linear-gradient(135deg,rgba(170,170,170,.08),rgba(255,255,255,.03))}
+  .podium-card.place-3{border-color:#cd7f32;background:linear-gradient(135deg,rgba(205,127,50,.08),transparent)}
+
+  .podium-place-num{font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:.2rem}
+  .place-1 .podium-place-num{color:var(--gold)}
+  .place-2 .podium-place-num{color:#ccc}
+  .place-3 .podium-place-num{color:#cd7f32}
+
+  .podium-name-row{display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem}
+  .podium-trophy{font-size:1.6rem;line-height:1}
+  .podium-player-name{font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;color:var(--text);line-height:1}
+  .place-1 .podium-player-name{color:var(--gold);text-shadow:0 0 20px rgba(241,196,15,.4)}
+
+  .podium-score-row{display:flex;align-items:baseline;gap:.4rem;margin-bottom:.6rem}
+  .podium-score-big{font-family:'Barlow Condensed',sans-serif;font-size:2.8rem;font-weight:900;line-height:1}
+  .place-1 .podium-score-big{color:var(--orange)}
+  .place-2 .podium-score-big{color:#ccc}
+  .place-3 .podium-score-big{color:#cd7f32}
+  .podium-score-label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+
+  .podium-breakdown{display:grid;grid-template-columns:1fr 1fr;gap:.2rem .75rem;margin-top:.5rem;padding-top:.5rem;border-top:1px solid rgba(255,255,255,.06)}
+  .podium-break-line{font-size:.72rem;color:var(--muted);display:flex;justify-content:space-between}
+  .podium-break-line span:last-child{color:var(--text);font-weight:600}
+
+  .podium-badges{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.4rem}
+  .podium-badge{font-size:.65rem;font-weight:700;padding:.2rem .5rem;border-radius:99px;letter-spacing:.5px;text-transform:uppercase}
+  .badge-hp{background:rgba(241,196,15,.15);color:var(--gold)}
+  .badge-money{background:rgba(46,204,113,.15);color:var(--green)}
+  .badge-road{background:rgba(46,204,113,.15);color:var(--green)}
+  .badge-perf{background:rgba(216,90,48,.15);color:var(--orange)}
+  .badge-rel{background:rgba(52,152,219,.15);color:var(--blue)}
+  .badge-looks{background:rgba(255,107,53,.15);color:var(--orange2)}
+  .badge-creative{background:rgba(155,89,182,.2);color:#c39bd3}
+
+  /* suspense card — face down before reveal */
+  .podium-hidden{background:var(--dark3);border:1.5px solid var(--dark4);border-radius:var(--radius);padding:1.2rem;text-align:center;display:flex;align-items:center;justify-content:center;gap:.75rem;min-height:72px}
+  .podium-hidden-label{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:700;color:var(--muted);letter-spacing:2px}
+  .podium-hidden-dots{display:flex;gap:.3rem}
+  .podium-hidden-dot{width:8px;height:8px;border-radius:50%;background:var(--dark4);animation:dotPulse 1.2s ease-in-out infinite}
+  .podium-hidden-dot:nth-child(2){animation-delay:.2s}
+  .podium-hidden-dot:nth-child(3){animation-delay:.4s}
+  @keyframes dotPulse{0%,80%,100%{transform:scale(1);background:var(--dark4)}40%{transform:scale(1.3);background:var(--orange)}}
+
+  /* winner flash */
+  @keyframes winnerPulse{0%,100%{box-shadow:0 0 0 0 rgba(241,196,15,.4)}50%{box-shadow:0 0 0 12px rgba(241,196,15,0)}}
+  .podium-card.place-1.revealed{animation:podiumReveal .55s cubic-bezier(.34,1.4,.64,1) forwards, winnerPulse 2s ease 0.6s 3}
 </style>
 </head>
 <body>
@@ -247,6 +343,7 @@
 <!-- CARD DETAIL MODAL -->
 <div class="modal-overlay hidden" id="card-modal" onclick="closeModal(event)">
   <div class="card-detail" id="card-modal-inner">
+    <div class="modal-art" id="modal-art" style="display:none"></div>
     <div id="modal-legal" style="font-size:.8rem;margin-bottom:.5rem"></div>
     <div class="modal-name" id="modal-name"></div>
     <div class="modal-cost" id="modal-cost"></div>
@@ -394,10 +491,34 @@
 
 <!-- RESULTS SCREEN -->
 <div id="results" class="screen results-screen">
-  <div class="results-title">🏁 Final Results</div>
   <div id="results-content"></div>
   <div id="vote-panels"></div>
-  <button class="btn btn-secondary" style="margin-top:1rem" onclick="location.reload()">New Game</button>
+  <button class="btn btn-secondary" style="margin-top:1rem;display:none" id="new-game-btn" onclick="location.reload()">New Game</button>
+</div>
+
+<!-- PODIUM REVEAL SCREEN -->
+<div id="podium-screen" class="screen" style="padding:0;overflow:hidden">
+  <div id="podium-bg"></div>
+  <div id="podium-inner">
+    <div id="podium-header">
+      <div id="podium-pretitle">HOT BUILD TOURNAMENT</div>
+      <div id="podium-title">FINAL RESULTS</div>
+    </div>
+
+    <!-- voting phase -->
+    <div id="podium-voting-phase">
+      <div id="pvote-panels"></div>
+    </div>
+
+    <!-- reveal phase -->
+    <div id="podium-reveal-phase" style="display:none">
+      <div id="podium-stage"></div>
+      <div id="podium-controls">
+        <div id="podium-prompt"></div>
+        <button class="btn btn-primary" id="podium-next-btn" onclick="podiumNext()">▶ Reveal Next</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -888,6 +1009,2027 @@ function renderGame(data) {
   renderBuildSlots(data);
 }
 
+// ── ENGINE ART (parametric SVG) ─────────────────────────────────────────────
+// ── PARAMETRIC SVG ENGINE ILLUSTRATOR ───────────────────────────────────────
+// Draws a stylised 2D engine per card based on real layout + induction.
+// viewBox 0 0 240 150. Cohesive flat-vector look: dark block, accent covers.
+
+const ENGINE_ART = {
+  201:{layout:'i4',    induction:'na',        accent:'#3fa7d6'}, // NA Inline-4
+  202:{layout:'i4',    induction:'turbo',     accent:'#D85A30'}, // Turbo Inline-4
+  203:{layout:'i4',    induction:'na',        accent:'#e74c3c'}, // VTEC I4
+  204:{layout:'i6',    induction:'turbo',     accent:'#9b59b6'}, // JZ I6 turbo
+  205:{layout:'v8',    induction:'na',        accent:'#D85A30'}, // Small-block V8
+  206:{layout:'v8',    induction:'super',     accent:'#f1c40f'}, // Supercharged V8
+  207:{layout:'v8',    induction:'carb',      accent:'#e67e22'}, // Big-block carb
+  208:{layout:'v6',    induction:'turbo',     accent:'#3498db'}, // V6 turbo
+  209:{layout:'i4',    induction:'turbo',     accent:'#95a5a6', diesel:true}, // Diesel I4
+  210:{layout:'boxer', induction:'turbo',     accent:'#2980b9'}, // Rally boxer
+  211:{layout:'electric',induction:'none',    accent:'#2ecc71'}, // Electric
+  212:{layout:'rotary',induction:'turbo',     accent:'#e74c3c'}, // Rotary turbo
+  213:{layout:'i4',    induction:'na',        accent:'#cfd3d6'}, // 4AGE Silvertop
+  214:{layout:'i6',    induction:'twinturbo', accent:'#D85A30'}, // RB26DETT
+  215:{layout:'i4',    induction:'turbo',     accent:'#5d6d7e', diesel:true}, // 4BT Cummins
+  216:{layout:'boxer', induction:'turbo',     accent:'#3498db'}, // EJ257
+  217:{layout:'v8',    induction:'na',        accent:'#c0392b'}, // VH Holden V8
+  218:{layout:'v8',    induction:'na',        accent:'#e74c3c'}, // VN 5.0 V8
+  219:{layout:'v8',    induction:'na',        accent:'#f1c40f'}, // 1UZ V8
+  220:{layout:'v8',    induction:'carb',      accent:'#e67e22'}, // Chev 454
+  221:{layout:'v8',    induction:'na',        accent:'#16a085'}, // VK56
+};
+
+// shade helper — darken a hex by factor (0..1)
+function shade(hex, f){
+  const n = parseInt(hex.slice(1),16);
+  let r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+  r=Math.round(r*f); g=Math.round(g*f); b=Math.round(b*f);
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+
+function defs(id, accent){
+  const a2 = shade(accent,0.55);
+  return `<defs>
+    <linearGradient id="blk${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a3d40"/><stop offset="1" stop-color="#1d1f21"/>
+    </linearGradient>
+    <linearGradient id="acc${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${accent}"/><stop offset="1" stop-color="${a2}"/>
+    </linearGradient>
+    <linearGradient id="chr${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8e8e8"/><stop offset="0.5" stop-color="#9aa0a6"/><stop offset="1" stop-color="#6b7075"/>
+    </linearGradient>
+    <radialGradient id="glow${id}" cx="0.5" cy="0.4" r="0.7">
+      <stop offset="0" stop-color="${accent}" stop-opacity="0.22"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/>
+    </radialGradient>
+  </defs>`;
+}
+
+// ── INDUCTION PARTS ──────────────────────────────────────────────────────────
+function turboSnail(id, x, y, s=1, accent='#888'){
+  // s = scale. Stylised volute snail with intake mouth + outlet.
+  const r = 15*s;
+  return `<g transform="translate(${x},${y})">
+    <circle cx="0" cy="0" r="${r}" fill="url(#chr${id})" stroke="#444" stroke-width="1.2"/>
+    <circle cx="0" cy="0" r="${r*0.6}" fill="#2a2d30" stroke="#555" stroke-width="1"/>
+    <path d="M ${-r*0.55} ${-r*0.3} A ${r*0.62} ${r*0.62} 0 1 1 ${r*0.1} ${r*0.6}"
+      fill="none" stroke="#777" stroke-width="2" opacity="0.7"/>
+    <circle cx="0" cy="0" r="${r*0.18}" fill="#555"/>
+    <!-- compressor inlet mouth -->
+    <ellipse cx="${-r*0.95}" cy="0" rx="${r*0.45}" ry="${r*0.7}" fill="#1a1c1e" stroke="#555" stroke-width="1"/>
+    <!-- hot outlet -->
+    <rect x="${r*0.55}" y="${-r*0.45}" width="${r*0.9}" height="${r*0.9}" rx="2" fill="url(#chr${id})" stroke="#444" stroke-width="1"/>
+  </g>`;
+}
+
+function supercharger(id, x, y, w=70, accent){
+  // Roots blower box with ribs + front pulley + snout
+  return `<g transform="translate(${x},${y})">
+    <rect x="0" y="0" width="${w}" height="22" rx="4" fill="url(#acc${id})" stroke="${shade(accent,0.45)}" stroke-width="1.5"/>
+    ${[0,1,2,3,4,5].map(i=>`<rect x="${6+i*(w-12)/6}" y="2" width="3" height="18" rx="1.5" fill="${shade(accent,0.6)}"/>`).join('')}
+    <rect x="${w*0.3}" y="-8" width="${w*0.4}" height="10" rx="3" fill="#2a2d30" stroke="#555" stroke-width="1"/>
+    <circle cx="${w+8}" cy="11" r="11" fill="url(#chr${id})" stroke="#444" stroke-width="1.5"/>
+    <circle cx="${w+8}" cy="11" r="4" fill="#444"/>
+  </g>`;
+}
+
+function carbAirCleaner(id, cx, cy){
+  // Chrome round air cleaner (top-down disc)
+  return `<g transform="translate(${cx},${cy})">
+    <ellipse cx="0" cy="0" rx="30" ry="11" fill="url(#chr${id})" stroke="#444" stroke-width="1.5"/>
+    <ellipse cx="0" cy="-3" rx="30" ry="9" fill="#cfd3d6"/>
+    <ellipse cx="0" cy="-3" rx="22" ry="6" fill="none" stroke="#8a9095" stroke-width="1"/>
+    <circle cx="0" cy="-3" r="3" fill="#777"/>
+  </g>`;
+}
+
+function coilPacks(id, x, y, n, accent){
+  // little vertical coil packs on top of valve cover — count = cylinders
+  let g='';
+  const gap = 11;
+  for(let i=0;i<n;i++){
+    g+=`<rect x="${x+i*gap}" y="${y}" width="7" height="13" rx="1.5" fill="#2a2d30" stroke="#555" stroke-width="0.8"/>
+        <rect x="${x+i*gap+2}" y="${y-3}" width="3" height="4" fill="${accent}"/>`;
+  }
+  return g;
+}
+
+// ── LAYOUTS ──────────────────────────────────────────────────────────────────
+function inline(id, n, art){
+  const accent = art.accent;
+  const cylSpan = n*11;
+  const bx = 120 - cylSpan/2 - 8;       // block left
+  const bw = cylSpan + 16;
+  // exhaust + turbo
+  let induction = '';
+  if(art.induction==='turbo' || art.induction==='twinturbo'){
+    induction += turboSnail(id, bx-14, 118, 0.9, accent);
+    if(art.induction==='twinturbo') induction += turboSnail(id, bx+bw+14, 118, 0.9, accent);
+  }
+  // intake runners (curved) on the right
+  const runner = `<path d="M ${bx+bw} 70 q 26 0 26 22 l 0 14" fill="none" stroke="url(#chr${id})" stroke-width="6" opacity="0.9"/>
+                  <path d="M ${bx+bw} 70 q 26 0 26 22 l 0 14" fill="none" stroke="#555" stroke-width="7.5" opacity="0.25"/>`;
+  const dieselTag = art.diesel ? `<rect x="${bx+8}" y="58" width="${bw-16}" height="6" rx="3" fill="#111" opacity="0.5"/>` : '';
+  return `
+    ${art.induction!=='twinturbo'? runner: ''}
+    <!-- oil pan -->
+    <path d="M ${bx+6} 122 L ${bx+bw-6} 122 L ${bx+bw-14} 140 L ${bx+14} 140 Z" fill="#16181a" stroke="#000" stroke-width="0.5"/>
+    <!-- block -->
+    <rect x="${bx}" y="86" width="${bw}" height="38" rx="4" fill="url(#blk${id})" stroke="#4a4d50" stroke-width="1"/>
+    ${[...Array(n)].map((_,i)=>`<circle cx="${bx+12+i*11}" cy="112" r="1.6" fill="#555"/>`).join('')}
+    <!-- valve cover -->
+    <rect x="${bx+4}" y="60" width="${bw-8}" height="28" rx="5" fill="url(#acc${id})" stroke="${shade(accent,0.45)}" stroke-width="1.5"/>
+    ${dieselTag}
+    ${[0,1,2].map(i=>`<line x1="${bx+10}" y1="${68+i*6}" x2="${bx+bw-10}" y2="${68+i*6}" stroke="${shade(accent,0.6)}" stroke-width="1.5"/>`).join('')}
+    ${coilPacks(id, bx+9, 50, n, accent)}
+    <!-- front crank pulley -->
+    <circle cx="${bx-2}" cy="104" r="13" fill="url(#chr${id})" stroke="#444" stroke-width="1.5"/>
+    <circle cx="${bx-2}" cy="104" r="5" fill="#444"/>
+    ${induction}
+  `;
+}
+
+function vEngine(id, n, art){
+  const accent = art.accent;
+  const perBank = n/2;
+  const cx = 120;
+  // crankcase
+  const base = `<path d="M ${cx-30} 96 L ${cx+30} 96 L ${cx+22} 124 L ${cx-22} 124 Z" fill="url(#blk${id})" stroke="#4a4d50" stroke-width="1"/>
+                <path d="M ${cx-16} 124 L ${cx+16} 124 L ${cx+10} 140 L ${cx-10} 140 Z" fill="#16181a"/>`;
+  // banks (parallelograms forming V)
+  const bankL = `<path d="M ${cx-6} 96 L ${cx-30} 96 L ${cx-46} 60 L ${cx-22} 60 Z" fill="url(#blk${id})" stroke="#4a4d50" stroke-width="1"/>`;
+  const bankR = `<path d="M ${cx+6} 96 L ${cx+30} 96 L ${cx+46} 60 L ${cx+22} 60 Z" fill="url(#blk${id})" stroke="#4a4d50" stroke-width="1"/>`;
+  // valve covers on top of banks
+  const coverL = `<path d="M ${cx-46} 60 L ${cx-22} 60 L ${cx-26} 48 L ${cx-50} 48 Z" fill="url(#acc${id})" stroke="${shade(accent,0.45)}" stroke-width="1.3"/>`;
+  const coverR = `<path d="M ${cx+46} 60 L ${cx+22} 60 L ${cx+26} 48 L ${cx+50} 48 Z" fill="url(#acc${id})" stroke="${shade(accent,0.45)}" stroke-width="1.3"/>`;
+  // exhaust headers: tubes sweeping down-out from each bank
+  function headerSet(dir){
+    let p='';
+    for(let i=0;i<perBank;i++){
+      const startY = 78 + i*4;
+      const endX = cx + dir*(40 + i*7);
+      p+=`<path d="M ${cx+dir*27} ${startY} Q ${cx+dir*46} ${startY+6} ${endX} ${118+i*3}" fill="none" stroke="url(#chr${id})" stroke-width="3.4" opacity="0.85"/>`;
+    }
+    return p;
+  }
+  // intake valley
+  let top = '';
+  if(art.induction==='carb'){
+    top = carbAirCleaner(id, cx, 44);
+    top += `<rect x="${cx-14}" y="48" width="28" height="14" rx="2" fill="url(#acc${id})" stroke="${shade(accent,0.45)}" stroke-width="1"/>`;
+  } else if(art.induction==='super'){
+    top = supercharger(id, cx-35, 30, 70, accent);
+  } else {
+    // intake manifold plenum in valley
+    top = `<path d="M ${cx-24} 60 Q ${cx} 40 ${cx+24} 60 L ${cx+18} 64 Q ${cx} 50 ${cx-18} 64 Z" fill="url(#acc${id})" stroke="${shade(accent,0.45)}" stroke-width="1.2"/>`;
+    if(art.induction==='turbo') top += turboSnail(id, cx+60, 110, 0.85, accent);
+  }
+  return `
+    ${headerSet(-1)} ${headerSet(1)}
+    ${bankL} ${bankR}
+    ${base}
+    ${coverL} ${coverR}
+    ${top}
+    <!-- crank pulley front -->
+    <circle cx="${cx}" cy="120" r="11" fill="url(#chr${id})" stroke="#444" stroke-width="1.5"/>
+    <circle cx="${cx}" cy="120" r="4" fill="#444"/>
+    <!-- V badge cylinders count dots -->
+    ${[...Array(perBank)].map((_,i)=>`<circle cx="${cx-44+i*5}" cy="55" r="1.3" fill="${shade(accent,0.6)}"/>`).join('')}
+    ${[...Array(perBank)].map((_,i)=>`<circle cx="${cx+44-i*5}" cy="55" r="1.3" fill="${shade(accent,0.6)}"/>`).join('')}
+  `;
+}
+
+function boxer(id, art){
+  const accent = art.accent;
+  const cx=120, cy=92;
+  const cyl = (dir)=>`
+    <rect x="${cx+dir*18}" y="${cy-16}" width="${dir>0?44:0}" height="32" fill="none"/>
+    <g transform="translate(${cx},${cy})">
+      <rect x="${dir>0?18:-62}" y="-15" width="44" height="30" rx="5" fill="url(#blk${id})" stroke="#4a4d50" stroke-width="1"/>
+      <rect x="${dir>0?54:-66}" y="-13" width="12" height="26" rx="3" fill="url(#acc${id})" stroke="${shade(accent,0.45)}" stroke-width="1.2"/>
+      ${[0,1].map(i=>`<circle cx="${dir>0?30+i*16:-44+i*16}" cy="0" r="2" fill="#555"/>`).join('')}
+    </g>`;
+  let induction='';
+  if(art.induction==='turbo') induction = turboSnail(id, cx, 132, 0.85, accent);
+  return `
+    ${cyl(-1)} ${cyl(1)}
+    <!-- center crankcase -->
+    <circle cx="${cx}" cy="${cy}" r="22" fill="url(#blk${id})" stroke="#4a4d50" stroke-width="1.2"/>
+    <circle cx="${cx}" cy="${cy}" r="13" fill="#26292c" stroke="#555" stroke-width="1"/>
+    <circle cx="${cx}" cy="${cy}" r="4" fill="#555"/>
+    <!-- intake top -->
+    <path d="M ${cx-20} ${cy-20} Q ${cx} ${cy-40} ${cx+20} ${cy-20}" fill="none" stroke="url(#chr${id})" stroke-width="6" opacity="0.85"/>
+    ${induction}
+  `;
+}
+
+function rotary(id, art){
+  const accent = art.accent;
+  const cx=118, cy=92;
+  // epitrochoid-ish housing (rounded peanut via ellipse)
+  // Reuleaux triangle rotor
+  const R=26;
+  const verts=[[0,-R],[R*0.866,R*0.5],[-R*0.866,R*0.5]];
+  const arc=(p1,p2)=>`A ${R*2} ${R*2} 0 0 1 ${p2[0]} ${p2[1]}`;
+  const rotor=`M ${verts[0][0]} ${verts[0][1]} ${arc(verts[0],verts[1])} ${arc(verts[1],verts[2])} ${arc(verts[2],verts[0])} Z`;
+  let induction='';
+  if(art.induction==='turbo') induction=turboSnail(id, cx+58, 110, 0.85, accent);
+  return `
+    <!-- housing -->
+    <ellipse cx="${cx}" cy="${cy}" rx="44" ry="34" fill="url(#blk${id})" stroke="#4a4d50" stroke-width="1.4"/>
+    <ellipse cx="${cx}" cy="${cy}" rx="44" ry="34" fill="none" stroke="${shade(accent,0.7)}" stroke-width="1" opacity="0.5"/>
+    <!-- rotor -->
+    <g transform="translate(${cx},${cy}) rotate(12)">
+      <path d="${rotor}" fill="url(#acc${id})" stroke="${shade(accent,0.4)}" stroke-width="1.5"/>
+      <circle cx="0" cy="0" r="7" fill="#26292c" stroke="#555" stroke-width="1.2"/>
+      <circle cx="0" cy="0" r="2.5" fill="#777"/>
+      ${verts.map(v=>`<circle cx="${v[0]*0.78}" cy="${v[1]*0.78}" r="2" fill="${shade(accent,0.5)}"/>`).join('')}
+    </g>
+    <!-- intake/exhaust ports -->
+    <rect x="${cx+38}" y="${cy-6}" width="14" height="12" rx="2" fill="#1a1c1e" stroke="#555" stroke-width="1"/>
+    <rect x="${cx-52}" y="${cy-6}" width="14" height="12" rx="2" fill="#1a1c1e" stroke="#555" stroke-width="1"/>
+    ${induction}
+  `;
+}
+
+function electric(id, art){
+  const accent=art.accent;
+  const cx=116, cy=94;
+  return `
+    <!-- motor cylinder -->
+    <rect x="${cx-44}" y="${cy-26}" width="78" height="52" rx="10" fill="url(#blk${id})" stroke="#4a4d50" stroke-width="1.2"/>
+    ${[...Array(7)].map((_,i)=>`<line x1="${cx-38+i*11}" y1="${cy-24}" x2="${cx-38+i*11}" y2="${cy+24}" stroke="#4a4d50" stroke-width="1.4"/>`).join('')}
+    <!-- end bell with copper windings -->
+    <circle cx="${cx+34}" cy="${cy}" r="27" fill="#2a2d30" stroke="#4a4d50" stroke-width="1.4"/>
+    ${[22,16,10].map(r=>`<circle cx="${cx+34}" cy="${cy}" r="${r}" fill="none" stroke="#c87f33" stroke-width="2" opacity="0.8"/>`).join('')}
+    <circle cx="${cx+34}" cy="${cy}" r="4" fill="#888"/>
+    <!-- battery pack -->
+    <g transform="translate(${cx-52},${cy+18})">
+      <rect x="0" y="0" width="40" height="20" rx="3" fill="url(#acc${id})" stroke="${shade(accent,0.45)}" stroke-width="1.2"/>
+      <rect x="6" y="-4" width="5" height="5" fill="${shade(accent,0.5)}"/>
+      <rect x="28" y="-4" width="5" height="5" fill="${shade(accent,0.5)}"/>
+    </g>
+    <!-- lightning bolt -->
+    <path d="M ${cx-6} ${cy-44} L ${cx-16} ${cy-22} L ${cx-7} ${cy-22} L ${cx-14} ${cy-2} L ${cx+8} ${cy-28} L ${cx-2} ${cy-28} L ${cx+6} ${cy-44} Z"
+      fill="${accent}" stroke="#fff" stroke-width="0.6" opacity="0.95"/>
+  `;
+}
+
+// induction text label (small badge)
+function inductionBadge(art){
+  const map={turbo:'TURBO',twinturbo:'TWIN-TURBO',super:'S/C',carb:'CARB',na:'NA',none:'EV'};
+  const t=map[art.induction]||'';
+  if(!t) return '';
+  return `<g transform="translate(8,134)">
+    <rect x="0" y="0" width="${t.length*6.5+10}" height="15" rx="7.5" fill="#0008" stroke="${art.accent}" stroke-width="1"/>
+    <text x="${(t.length*6.5+10)/2}" y="11" font-family="'Barlow Condensed',sans-serif" font-size="10" font-weight="700" fill="${art.accent}" text-anchor="middle" letter-spacing="0.5">${t}</text>
+  </g>`;
+}
+
+function engineSVG(id){
+  const art = ENGINE_ART[id];
+  if(!art) return '';
+  let body='';
+  switch(art.layout){
+    case 'i4': body=inline(id,4,art); break;
+    case 'i6': body=inline(id,6,art); break;
+    case 'v8': body=vEngine(id,8,art); break;
+    case 'v6': body=vEngine(id,6,art); break;
+    case 'boxer': body=boxer(id,art); break;
+    case 'rotary': body=rotary(id,art); break;
+    case 'electric': body=electric(id,art); break;
+  }
+  return `<svg viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">
+    ${defs(id,art.accent)}
+    <rect x="0" y="0" width="240" height="150" fill="url(#glow${id})"/>
+    ${body}
+    ${inductionBadge(art)}
+  </svg>`;
+}
+
+// ── CHASSIS ART (parametric SVG) ────────────────────────────────────────────
+// ── PARAMETRIC SVG CHASSIS ILLUSTRATOR ──────────────────────────────────────
+// Realistic side-profile car silhouettes, same flat-vector style as engines.
+// viewBox 0 0 240 150. Ground line y=126.
+
+function shadeC(hex, f){
+  const n = parseInt(hex.slice(1),16);
+  let r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+  r=Math.round(r*f); g=Math.round(g*f); b=Math.round(b*f);
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+
+const CHASSIS_ART = {
+  101:{type:'roadster', accent:'#3fa7d6', badge:'LIGHTWEIGHT'},
+  102:{type:'coupe',    accent:'#D85A30', badge:'COUPE'},
+  103:{type:'track',    accent:'#e74c3c', badge:'TRACK'},
+  104:{type:'drag',     accent:'#f1c40f', badge:'DRAG'},
+  105:{type:'muscle',   accent:'#c0392b', badge:'MUSCLE'},
+  106:{type:'sedan',    accent:'#3498db', badge:'SEDAN', trim:'sport'},
+  107:{type:'hatch',    accent:'#e67e22', badge:'HATCH'},
+  108:{type:'coupe',    accent:'#1abc9c', badge:'COUPE', small:true},
+  109:{type:'sedan',    accent:'#2980b9', badge:'AWD', trim:'sport'},
+  110:{type:'drift',    accent:'#D85A30', badge:'DRIFT', wing:true},
+  111:{type:'drift',    accent:'#9b59b6', badge:'DRIFT'},
+  112:{type:'drift',    accent:'#e74c3c', badge:'DRIFT', small:true},
+  113:{type:'ute',      accent:'#e67e22', badge:'4X4'},
+  114:{type:'suv',      accent:'#16a085', badge:'EXPEDITION'},
+  115:{type:'trophy',   accent:'#f39c12', badge:'DESERT'},
+  116:{type:'sedan',    accent:'#34495e', badge:'EXECUTIVE', trim:'lux'},
+  117:{type:'gt',       accent:'#f1c40f', badge:'GRAND TOURER'},
+  118:{type:'sedan',    accent:'#5d6d7e', badge:'LUXURY', trim:'lux', long:true},
+};
+
+const GROUND = 126;
+
+function cDefs(id, accent){
+  const a2 = shadeC(accent,0.5);
+  return `<defs>
+    <linearGradient id="body${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#43474b"/><stop offset="0.5" stop-color="#2b2e31"/><stop offset="1" stop-color="#191b1d"/>
+    </linearGradient>
+    <linearGradient id="cacc${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${accent}"/><stop offset="1" stop-color="${a2}"/>
+    </linearGradient>
+    <linearGradient id="glassg${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#aebfc9"/><stop offset="1" stop-color="#39474f"/>
+    </linearGradient>
+    <radialGradient id="cglow${id}" cx="0.5" cy="0.45" r="0.65">
+      <stop offset="0" stop-color="${accent}" stop-opacity="0.20"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="chrome${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8e8e8"/><stop offset="0.5" stop-color="#9aa0a6"/><stop offset="1" stop-color="#6b7075"/>
+    </linearGradient>
+  </defs>`;
+}
+
+// ── WHEEL ────────────────────────────────────────────────────────────────────
+function wheel(id, cx, r, accent, opts={}){
+  const cy = GROUND - r;
+  const knobby = opts.knobby;
+  const tread = knobby
+    ? [...Array(16)].map((_,i)=>{const a=i/16*Math.PI*2;const x1=cx+Math.cos(a)*r;const y1=cy+Math.sin(a)*r;const x2=cx+Math.cos(a)*(r+3);const y2=cy+Math.sin(a)*(r+3);return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#1a1c1e" stroke-width="3"/>`;}).join('')
+    : '';
+  const rimR = r*opts.rimScale || r*0.6;
+  const spokes = [...Array(5)].map((_,i)=>{const a=i/5*Math.PI*2 - Math.PI/2;return `<line x1="${cx}" y1="${cy}" x2="${(cx+Math.cos(a)*rimR).toFixed(1)}" y2="${(cy+Math.sin(a)*rimR).toFixed(1)}" stroke="${shadeC(accent,0.8)}" stroke-width="2.4"/>`;}).join('');
+  return `<g>
+    ${tread}
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="#15171a" stroke="#000" stroke-width="1"/>
+    <circle cx="${cx}" cy="${cy}" r="${r*0.95}" fill="none" stroke="#2a2d30" stroke-width="2"/>
+    <circle cx="${cx}" cy="${cy}" r="${rimR}" fill="#202326" stroke="${shadeC(accent,0.7)}" stroke-width="1.5"/>
+    ${spokes}
+    <circle cx="${cx}" cy="${cy}" r="${r*0.16}" fill="${accent}"/>
+  </g>`;
+}
+
+// helper: ground shadow ellipse
+function groundShadow(x1,x2){
+  const cx=(x1+x2)/2, rx=(x2-x1)/2*1.05;
+  return `<ellipse cx="${cx}" cy="${GROUND+5}" rx="${rx}" ry="6" fill="#000" opacity="0.45"/>`;
+}
+
+// ── SILHOUETTES ──────────────────────────────────────────────────────────────
+// Each returns {body, glass, wheels:[{cx,r,opts}], extras, ride}
+// Paths drawn nose-left, tail-right.
+
+function silCoupe(a){
+  const lift = a.small? 2:0;
+  const fc=64, rc=178, r=17;
+  return {
+    wheels:[{cx:fc,r}, {cx:rc,r}],
+    body:`M 24 108
+      L 40 102 C 52 96 60 92 78 90
+      C 96 70 120 62 150 64
+      C 170 66 186 74 196 88
+      L 214 94 C 220 96 222 100 222 106
+      L 220 112 L 200 112
+      A 22 22 0 0 0 156 112 L 86 112
+      A 22 22 0 0 0 42 112 L 26 112 Z`,
+    glass:`M 92 88 C 104 74 120 70 144 71 C 158 72 170 77 180 87 L 156 86 L 120 85 Z`,
+    beltline:`M 40 102 L 196 100`,
+    accentStripe:`M 26 108 L 214 100`,
+  };
+}
+function silGT(a){
+  const fc=60, rc=186, r=17;
+  return {
+    wheels:[{cx:fc,r},{cx:rc,r}],
+    // very long bonnet, low cabin set well back, fastback flowing tail
+    body:`M 18 110
+      L 36 104 C 70 96 96 92 120 90
+      C 138 74 162 68 188 72
+      C 204 75 216 82 224 96
+      L 226 106 L 224 112 L 208 112
+      A 22 22 0 0 0 164 112 L 94 112
+      A 22 22 0 0 0 50 112 L 20 112 Z`,
+    glass:`M 126 88 C 142 76 162 72 184 76 C 196 78 206 84 212 93 L 178 90 L 140 88 Z`,
+    beltline:`M 36 104 L 220 98`,
+    accentStripe:`M 20 110 L 224 99`,
+  };
+}
+function silMuscle(a){
+  const fc=60, rc=184, r=18;
+  return {
+    wheels:[{cx:fc,r},{cx:rc,r}],
+    // very long flat bonnet, cabin pushed right, low fastback to short kicked-up tail
+    body:`M 18 110
+      L 34 99 L 104 95
+      C 110 80 128 75 152 77
+      C 172 79 184 85 190 96
+      L 206 98 L 218 95 L 220 100
+      C 221 104 220 108 216 113 L 202 113
+      A 23 23 0 0 0 156 113 L 84 113
+      A 23 23 0 0 0 38 113 L 20 113 Z`,
+    glass:`M 112 94 C 118 82 134 78 152 80 C 166 81 176 86 181 94 L 152 92 L 124 91 Z`,
+    beltline:`M 34 99 L 206 96`,
+    accentStripe:`M 20 106 L 218 96`,
+  };
+}
+function silSedan(a){
+  const lng = a.long? 8:0;
+  const fc=60, rc=182+lng, r=17;
+  // three-box: bonnet, upright cabin, boot
+  return {
+    wheels:[{cx:fc,r},{cx:rc,r}],
+    body:`M 22 110
+      L 40 102 L 84 98
+      C 88 80 96 74 112 73
+      L ${168+lng} 73
+      C ${182+lng} 74 ${188+lng} 80 ${192+lng} 96
+      L ${214+lng} 100 C ${220+lng} 102 ${222+lng} 105 ${221+lng} 110
+      L ${218+lng} 113 L ${202+lng} 113
+      A 22 22 0 0 0 ${160+lng} 113 L 84 113
+      A 22 22 0 0 0 40 113 L 24 113 Z`,
+    glass:`M 92 96 C 96 82 102 78 114 77 L ${166+lng} 77 C ${178+lng} 78 ${183+lng} 83 ${186+lng} 95 L ${150+lng} 94 L 120 93 Z`,
+    pillar:`M ${140+lng} 77 L ${142+lng} 95`,
+    beltline:`M 40 102 L ${192+lng} 98`,
+    accentStripe:`M 24 107 L ${214+lng} 100`,
+  };
+}
+function silHatch(a){
+  const fc=62, rc=168, r=17;
+  // short 2-box, tall upright greenhouse, steep hatch tail, roof spoiler
+  return {
+    wheels:[{cx:fc,r},{cx:rc,r}],
+    body:`M 26 108
+      L 42 100 L 78 96
+      C 82 76 92 68 110 67
+      C 134 66 150 70 158 78
+      L 186 84 C 192 86 194 90 193 100
+      L 190 113 L 178 113
+      A 22 22 0 0 0 134 113 L 86 113
+      A 22 22 0 0 0 42 113 L 28 113 Z`,
+    glass:`M 86 94 C 90 78 98 72 112 71 C 132 70 146 74 152 82 L 124 80 L 100 80 Z`,
+    spoiler:`M 184 80 L 198 78 L 198 83 L 186 85 Z`,
+    beltline:`M 42 100 L 188 92`,
+    accentStripe:`M 28 106 L 188 95`,
+  };
+}
+function silRoadster(a){
+  const fc=66, rc=172, r=16;
+  // small, low, short lightweight sports
+  return {
+    wheels:[{cx:fc,r},{cx:rc,r}],
+    body:`M 34 106
+      L 50 100 C 64 94 74 92 92 92
+      C 104 82 122 80 140 84
+      C 156 87 168 92 178 100
+      L 192 104 C 196 106 197 109 196 112
+      L 194 114 L 180 114
+      A 20 20 0 0 0 140 114 L 96 114
+      A 20 20 0 0 0 56 114 L 36 114 Z`,
+    glass:`M 100 90 C 110 82 124 81 138 84 C 148 86 156 90 162 96 L 138 94 L 116 92 Z`,
+    beltline:`M 50 100 L 178 98`,
+    accentStripe:`M 36 105 L 192 102`,
+  };
+}
+function silDrift(a){
+  const fc=62, rc=180, r=17;
+  // aggressive low coupe, front splitter, optional wing
+  const s = silCoupe(a);
+  s.wheels=[{cx:fc,r},{cx:rc,r}];
+  s.splitter=`M 22 113 L 40 113 L 38 117 L 22 117 Z`;
+  if(a.wing){
+    s.wing=`M 192 73 L 226 70 L 226 78 L 192 81 Z
+            M 197 80 L 201 80 L 202 94 L 198 94 Z
+            M 216 78 L 220 78 L 221 94 L 217 94 Z`;
+  }
+  return s;
+}
+function silTrack(a){
+  const fc=62, rc=178, r=17;
+  const s=silCoupe(a);
+  s.wheels=[{cx:fc,r},{cx:rc,r}];
+  s.splitter=`M 18 112 L 44 112 L 42 116 L 18 116 Z`;
+  // big high GT wing
+  s.wing=`M 184 64 L 226 60 L 226 69 L 184 73 Z
+          M 190 72 L 195 72 L 197 92 L 192 92 Z
+          M 215 69 L 220 69 L 222 92 L 217 92 Z`;
+  s.canard=`M 30 106 L 46 104 L 46 107 L 32 110 Z`;
+  return s;
+}
+function silDrag(a){
+  const fc=58, fr=12, rc=190, rr=24;
+  // long raked rail: small skinny front, huge rear slick, tall wing, wheelie bar
+  return {
+    raked:true,
+    wheels:[{cx:fc,r:fr,opts:{rimScale:0.5}}, {cx:rc,r:rr,opts:{rimScale:0.5}}],
+    body:`M 18 108 L 60 100 L 120 92
+      C 140 80 160 76 182 80
+      L 206 86 C 214 88 218 92 218 100
+      L 216 110 L 196 110
+      A 26 26 0 0 0 144 108 L 84 110
+      A 16 16 0 0 0 50 110 L 22 110 Z`,
+    glass:`M 130 90 C 146 80 162 78 178 82 C 188 84 196 88 200 94 L 172 90 L 148 89 Z`,
+    wing:`M 182 54 L 226 50 L 226 60 L 182 64 Z
+          M 188 63 L 193 63 L 195 86 L 190 86 Z
+          M 216 60 L 221 60 L 223 86 L 218 86 Z`,
+    wheelieBar:`M 214 112 L 236 116 L 236 119 L 214 116 Z`,
+    beltline:`M 60 100 L 200 92`,
+    accentStripe:`M 22 106 L 210 92`,
+  };
+}
+function silUte(a){
+  const fc=58, rc=186, r=20;
+  // cab-forward pickup + flat tray, bullbar, snorkel, raised, chunky tyres
+  return {
+    raised:6,
+    wheels:[{cx:fc,r,opts:{knobby:true}},{cx:rc,r,opts:{knobby:true}}],
+    body:`M 16 96
+      L 18 84 L 30 82
+      C 34 66 44 60 60 60
+      L 96 60 C 104 61 108 66 110 78
+      L 120 84 L 210 84 L 210 96
+      L 214 96 C 218 96 220 99 219 104
+      L 216 108 L 200 108
+      A 24 24 0 0 0 152 106 L 84 106
+      A 24 24 0 0 0 36 106 L 18 106 Z`,
+    glass:`M 40 78 C 44 66 52 62 64 62 L 92 62 C 100 63 104 68 106 78 L 80 77 L 56 76 Z`,
+    pillar:`M 74 62 L 75 78`,
+    tray:`M 120 84 L 210 84 L 210 96 L 120 96 Z`,
+    bullbar:`M 14 86 L 14 104 M 12 90 L 20 90 M 12 98 L 20 98`,
+    snorkel:`M 30 82 L 30 58 L 35 58 L 35 82`,
+    beltline:`M 30 82 L 110 80`,
+    accentStripe:`M 120 90 L 210 90`,
+  };
+}
+function silSuv(a){
+  const fc=60, rc=184, r=19;
+  // tall boxy wagon, long roofline, roof rack, raised, AT tyres
+  return {
+    raised:5,
+    wheels:[{cx:fc,r,opts:{knobby:true}},{cx:rc,r,opts:{knobby:true}}],
+    body:`M 18 96
+      L 22 78 C 26 64 36 58 52 57
+      L 176 57 C 192 58 202 64 206 80
+      L 212 96 C 218 98 220 101 219 106
+      L 216 110 L 200 110
+      A 23 23 0 0 0 154 108 L 84 108
+      A 23 23 0 0 0 38 108 L 20 108 Z`,
+    glass:`M 40 76 C 44 64 52 60 64 60 L 172 60 C 184 61 192 66 196 78 L 150 76 L 90 75 Z`,
+    pillar:`M 96 60 L 97 77 M 140 60 L 141 77`,
+    roofRack:`M 44 54 L 188 54 L 188 57 L 44 57 Z
+              M 50 50 L 50 54 M 90 50 L 90 54 M 130 50 L 130 54 M 170 50 L 170 54`,
+    beltline:`M 24 78 L 206 78`,
+    accentStripe:`M 20 96 L 212 96`,
+  };
+}
+function silTrophy(a){
+  const fc=56, rc=192, r=22;
+  const cy = GROUND - r; // 104
+  const floor = 70;      // body underside — sits well above wheel tops (82)
+  // High-clearance pickup: tall cab + lower bed, floating above huge tyres
+  return {
+    trophy:true,
+    wheels:[{cx:fc,r,opts:{knobby:true,rimScale:0.45}},{cx:rc,r,opts:{knobby:true,rimScale:0.45}}],
+    body:`M 24 ${floor}
+      L 34 60 C 38 48 46 44 58 44
+      L 96 44 C 104 45 108 50 110 60
+      L 116 62 L 204 62 L 206 ${floor}
+      L 116 ${floor} L 40 ${floor} Z`,
+    glass:`M 44 58 C 48 48 56 45 66 45 L 90 45 C 98 46 102 51 104 60 L 78 59 L 56 58 Z`,
+    pillar:`M 78 45 L 79 60`,
+    bed:`M 116 62 L 204 62 L 206 ${floor} L 116 ${floor} Z`,
+    lightbar:`M 50 39 L 96 39 L 96 44 L 50 44 Z`,
+    // long-travel A-arms + shocks bridging the clearance gap
+    susp:`M 44 ${floor} L ${fc-9} ${cy} M 70 ${floor} L ${fc+7} ${cy}
+          M 204 ${floor} L ${rc+9} ${cy} M 178 ${floor} L ${rc-7} ${cy}`,
+    shock:`M 54 ${floor-2} L ${fc} ${cy-1} M 190 ${floor-2} L ${rc} ${cy-1}`,
+    beltline:`M 34 60 L 204 64`,
+    accentStripe:`M 30 ${floor-3} L 204 66`,
+  };
+}
+
+const SIL = {roadster:silRoadster,coupe:silCoupe,track:silTrack,drag:silDrag,muscle:silMuscle,
+  sedan:silSedan,hatch:silHatch,drift:silDrift,ute:silUte,suv:silSuv,trophy:silTrophy,gt:silGT};
+
+function chassisBadge(art){
+  const t=art.badge||'';
+  if(!t) return '';
+  const w=t.length*6.2+12;
+  return `<g transform="translate(8,132)">
+    <rect x="0" y="0" width="${w}" height="15" rx="7.5" fill="#0008" stroke="${art.accent}" stroke-width="1"/>
+    <text x="${w/2}" y="11" font-family="'Barlow Condensed',sans-serif" font-size="10" font-weight="700" fill="${art.accent}" text-anchor="middle" letter-spacing="0.5">${t}</text>
+  </g>`;
+}
+
+function chassisSVG(id){
+  const art = CHASSIS_ART[id];
+  if(!art) return '';
+  const accent = art.accent;
+  const s = (SIL[art.type]||silCoupe)(art);
+  const dark = shadeC(accent,0.55);
+
+  const wheels = s.wheels.map(w=>wheel(id, w.cx, w.r, accent, w.opts||{})).join('');
+  // rims need to draw above body for arch reveal — but body has cutouts so tyres show; draw wheels under body, then rims again on top
+  const rimsTop = s.wheels.map(w=>{
+    const cy=GROUND-w.r; const rimR=(w.opts&&w.opts.rimScale?w.r*w.opts.rimScale:w.r*0.6);
+    const spokes=[...Array(5)].map((_,i)=>{const a=i/5*Math.PI*2-Math.PI/2;return `<line x1="${w.cx}" y1="${cy}" x2="${(w.cx+Math.cos(a)*rimR).toFixed(1)}" y2="${(cy+Math.sin(a)*rimR).toFixed(1)}" stroke="${shadeC(accent,0.85)}" stroke-width="2.4"/>`;}).join('');
+    return `<circle cx="${w.cx}" cy="${cy}" r="${rimR}" fill="#202326" stroke="${shadeC(accent,0.75)}" stroke-width="1.6"/>${spokes}<circle cx="${w.cx}" cy="${cy}" r="${w.r*0.16}" fill="${accent}"/>`;
+  }).join('');
+
+  const extras = [
+    s.susp?`<g stroke="${shadeC(accent,0.5)}" stroke-width="3" stroke-linecap="round">${s.susp}</g>`:'',
+    s.shock?`<g stroke="${accent}" stroke-width="2" stroke-linecap="round" opacity="0.8">${s.shock}</g>`:'',
+    s.wheelieBar?`<path d="${s.wheelieBar}" fill="${shadeC(accent,0.5)}"/>`:'',
+  ].join('');
+
+  const onBody = [
+    s.bed?`<path d="${s.bed}" fill="#16181a" stroke="#000" stroke-width="0.5"/>`:'',
+    s.tray?`<path d="${s.tray}" fill="#16181a"/>`:'',
+    s.glass?`<path d="${s.glass}" fill="url(#glassg${id})" stroke="#222" stroke-width="0.8" opacity="0.92"/>`:'',
+    s.pillar?`<path d="${s.pillar}" stroke="#15171a" stroke-width="2.2" fill="none"/>`:'',
+    s.beltline?`<path d="${s.beltline}" stroke="${shadeC(accent,0.8)}" stroke-width="1.4" fill="none" opacity="0.6"/>`:'',
+    s.accentStripe?`<path d="${s.accentStripe}" stroke="url(#cacc${id})" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.95"/>`:'',
+  ].join('');
+
+  const addons = [
+    s.spoiler?`<path d="${s.spoiler}" fill="url(#cacc${id})"/>`:'',
+    s.wing?`<path d="${s.wing}" fill="url(#chrome${id})" stroke="${shadeC(accent,0.7)}" stroke-width="1.1"/>`:'',
+    s.splitter?`<path d="${s.splitter}" fill="${shadeC(accent,0.4)}"/>`:'',
+    s.canard?`<path d="${s.canard}" fill="${shadeC(accent,0.5)}"/>`:'',
+    s.bullbar?`<path d="${s.bullbar}" stroke="url(#chrome${id})" stroke-width="3" fill="none" stroke-linecap="round"/>`:'',
+    s.snorkel?`<path d="${s.snorkel}" stroke="#222" stroke-width="4" fill="none"/>`:'',
+    s.roofRack?`<path d="${s.roofRack}" stroke="#15171a" stroke-width="2.2" fill="#15171a"/>`:'',
+    s.lightbar?`<path d="${s.lightbar}" fill="url(#chrome${id})" stroke="#333" stroke-width="0.5"/>`:'',
+    s.haunch?'':'',
+  ].join('');
+
+  const x1 = s.wheels[0].cx - s.wheels[0].r - 6;
+  const x2 = s.wheels[s.wheels.length-1].cx + s.wheels[s.wheels.length-1].r + 6;
+
+  return `<svg viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">
+    ${cDefs(id, accent)}
+    <rect x="0" y="0" width="240" height="150" fill="url(#cglow${id})"/>
+    ${groundShadow(x1,x2)}
+    ${extras}
+    ${wheels}
+    <path d="${s.body}" fill="url(#body${id})" stroke="${shadeC(accent,0.55)}" stroke-width="1.2"/>
+    ${onBody}
+    ${rimsTop}
+    ${addons}
+    ${chassisBadge(art)}
+  </svg>`;
+}
+
+// ── TUNING ART (parametric SVG) ─────────────────────────────────────────────
+// ── PARAMETRIC SVG TUNING-PART ILLUSTRATOR ──────────────────────────────────
+// Icon-style renderings of individual engine-upgrade parts. viewBox 0 0 240 150.
+// Same dark-metal / accent flat-vector style as engines + chassis.
+
+function shadeT(hex, f){
+  const n = parseInt(hex.slice(1),16);
+  let r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+  r=Math.min(255,Math.round(r*f)); g=Math.min(255,Math.round(g*f)); b=Math.min(255,Math.round(b*f));
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+
+const TUNING_ART = {
+  301:{type:'itb',        accent:'#3fa7d6', badge:'INTAKE'},
+  302:{type:'turbo',      accent:'#D85A30', badge:'TURBO'},
+  303:{type:'cam',        accent:'#e74c3c', badge:'INTERNALS'},
+  304:{type:'turbo',      accent:'#e67e22', badge:'TURBO', manifold:true},
+  305:{type:'head',       accent:'#c0392b', badge:'INTERNALS'},
+  306:{type:'pulley',     accent:'#f1c40f', badge:'BOOST'},
+  307:{type:'carb',       accent:'#e67e22', badge:'FUELING'},
+  308:{type:'ecu',        accent:'#2ecc71', badge:'TUNE'},
+  309:{type:'fuelpump',   accent:'#2ecc71', badge:'FUELING'},
+  310:{type:'antilag',    accent:'#e74c3c', badge:'BOOST'},
+  311:{type:'battery',    accent:'#3498db', badge:'ELECTRONICS'},
+  312:{type:'rotor',      accent:'#e74c3c', badge:'ROTARY'},
+  313:{type:'cone',       accent:'#3fa7d6', badge:'INTAKE'},
+  314:{type:'ecu',        accent:'#9b59b6', badge:'TUNE', piggy:true},
+  315:{type:'timer',      accent:'#1abc9c', badge:'ELECTRONICS'},
+  316:{type:'cooler',     accent:'#1abc9c', badge:'COOLING'},
+  317:{type:'injector',   accent:'#2ecc71', badge:'FUELING'},
+  318:{type:'methanol',   accent:'#5dade2', badge:'POWER ADDER'},
+  319:{type:'twin',       accent:'#D85A30', badge:'TWINCHARGED'},
+  320:{type:'headers',    accent:'#e67e22', badge:'EXHAUST'},
+  321:{type:'springs',    accent:'#e74c3c', badge:'INTERNALS'},
+  322:{type:'nitrous',    accent:'#3498db', badge:'NITROUS'},
+  323:{type:'intercooler',accent:'#1abc9c', badge:'COOLING'},
+  324:{type:'coil',       accent:'#f1c40f', badge:'IGNITION'},
+};
+
+function tDefs(id, accent){
+  const a2=shadeT(accent,0.5);
+  return `<defs>
+    <linearGradient id="tmet${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#43474b"/><stop offset="0.5" stop-color="#2b2e31"/><stop offset="1" stop-color="#191b1d"/>
+    </linearGradient>
+    <linearGradient id="tacc${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${accent}"/><stop offset="1" stop-color="${a2}"/>
+    </linearGradient>
+    <linearGradient id="tchr${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8e8e8"/><stop offset="0.5" stop-color="#9aa0a6"/><stop offset="1" stop-color="#6b7075"/>
+    </linearGradient>
+    <radialGradient id="tglow${id}" cx="0.5" cy="0.45" r="0.62">
+      <stop offset="0" stop-color="${accent}" stop-opacity="0.22"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tflame${id}" cx="0.3" cy="0.5" r="0.7">
+      <stop offset="0" stop-color="#fff3b0"/><stop offset="0.4" stop-color="${accent}"/><stop offset="1" stop-color="${shadeT(accent,0.6)}" stop-opacity="0.2"/>
+    </radialGradient>
+  </defs>`;
+}
+
+// reusable turbo snail
+function tSnail(id, x, y, s, accent){
+  const r=30*s;
+  return `<g transform="translate(${x},${y})">
+    <ellipse cx="${-r*0.92}" cy="0" rx="${r*0.5}" ry="${r*0.78}" fill="#15171a" stroke="#555" stroke-width="1.4"/>
+    <circle cx="0" cy="0" r="${r}" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1.6"/>
+    <path d="M ${-r*0.5} ${-r*0.55} A ${r*0.78} ${r*0.78} 0 1 1 ${r*0.2} ${r*0.78}" fill="none" stroke="#6b7075" stroke-width="3" opacity="0.7"/>
+    <circle cx="0" cy="0" r="${r*0.5}" fill="#26292c" stroke="#555" stroke-width="1.4"/>
+    <g stroke="${accent}" stroke-width="${r*0.13}" stroke-linecap="round">
+      ${[...Array(8)].map((_,i)=>{const a=i/8*Math.PI*2;return `<line x1="0" y1="0" x2="${(Math.cos(a)*r*0.42).toFixed(1)}" y2="${(Math.sin(a)*r*0.42).toFixed(1)}"/>`;}).join('')}
+    </g>
+    <circle cx="0" cy="0" r="${r*0.15}" fill="${shadeT(accent,0.8)}"/>
+    <rect x="${r*0.62}" y="${-r*0.5}" width="${r*0.95}" height="${r}" rx="2" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1.2"/>
+    <rect x="${r*1.5}" y="${-r*0.4}" width="${r*0.18}" height="${r*0.8}" fill="${accent}"/>
+  </g>`;
+}
+
+// ── PART DRAWERS ─────────────────────────────────────────────────────────────
+const PART = {
+  itb(id,a){const xs=[72,100,128,156];return `
+    <rect x="58" y="92" width="116" height="14" rx="4" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1"/>
+    ${xs.map(x=>`
+      <rect x="${x-6}" y="52" width="12" height="44" rx="2" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      <ellipse cx="${x}" cy="50" rx="11" ry="5" fill="${a.accent}" stroke="${shadeT(a.accent,0.6)}" stroke-width="1"/>
+      <ellipse cx="${x}" cy="50" rx="6" ry="2.6" fill="#15171a"/>
+      <rect x="${x-7}" y="70" width="14" height="3" fill="${shadeT(a.accent,0.7)}"/>`).join('')}
+    <rect x="60" y="104" width="112" height="4" rx="2" fill="${shadeT(a.accent,0.6)}"/>`;},
+
+  turbo(id,a){let m='';
+    if(a.manifold) m=`<path d="M 70 110 q 0 -22 18 -22 q 18 0 18 -18" fill="none" stroke="url(#tchr${id})" stroke-width="9" opacity="0.85"/><rect x="60" y="104" width="22" height="12" rx="2" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1"/>`;
+    return `${m}${tSnail(id,124,76,1,a.accent)}`;},
+
+  cam(id,a){const lobes=[60,82,104,126,148,170];return `
+    <rect x="36" y="70" width="172" height="12" rx="6" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1.2"/>
+    ${[44,196].map(x=>`<circle cx="${x}" cy="76" r="9" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1"/><circle cx="${x}" cy="76" r="3" fill="#555"/>`).join('')}
+    ${lobes.map(x=>`<path d="M ${x-8} 76 a 8 8 0 1 0 16 0 q 0 -14 -8 -16 q -8 2 -8 16 Z" fill="url(#tacc${id})" stroke="${shadeT(a.accent,0.6)}" stroke-width="1"/>`).join('')}`;},
+
+  head(id,a){return `
+    <rect x="58" y="84" width="124" height="26" rx="3" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1.2"/>
+    ${[74,98,122,146,170].map(x=>`<rect x="${x-2}" y="84" width="4" height="26" fill="#1a1c1e" opacity="0.5"/>`).join('')}
+    <rect x="62" y="58" width="116" height="28" rx="5" fill="url(#tacc${id})" stroke="${shadeT(a.accent,0.45)}" stroke-width="1.5"/>
+    ${[0,1,2].map(i=>`<line x1="70" y1="${66+i*6}" x2="170" y2="${66+i*6}" stroke="${shadeT(a.accent,0.6)}" stroke-width="1.4"/>`).join('')}
+    ${[80,120,160].map(x=>`<circle cx="${x}" cy="110" r="6" fill="#26292c" stroke="#555" stroke-width="1"/><rect x="${x-1.5}" y="108" width="3" height="14" fill="${shadeT(a.accent,0.7)}"/>`).join('')}`;},
+
+  pulley(id,a){return `
+    <path d="M 72 60 A 36 36 0 0 1 150 60" fill="none" stroke="#444" stroke-width="6" opacity="0.6"/>
+    <circle cx="92" cy="78" r="36" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1.5"/>
+    ${[30,24,18].map(r=>`<circle cx="92" cy="78" r="${r}" fill="none" stroke="${shadeT(a.accent,0.55)}" stroke-width="2"/>`).join('')}
+    <circle cx="92" cy="78" r="9" fill="url(#tacc${id})"/><circle cx="92" cy="78" r="3" fill="#222"/>
+    <circle cx="158" cy="64" r="18" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1.5"/>
+    <circle cx="158" cy="64" r="12" fill="none" stroke="${shadeT(a.accent,0.55)}" stroke-width="2"/>
+    <circle cx="158" cy="64" r="5" fill="url(#tacc${id})"/>`;},
+
+  carb(id,a){return `
+    <ellipse cx="120" cy="50" rx="34" ry="11" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1.4"/>
+    <ellipse cx="120" cy="47" rx="34" ry="9" fill="#cfd3d6"/><ellipse cx="120" cy="47" rx="24" ry="6" fill="none" stroke="#8a9095" stroke-width="1"/>
+    <circle cx="120" cy="47" r="3" fill="#777"/>
+    <rect x="98" y="58" width="44" height="34" rx="3" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1.4"/>
+    <circle cx="120" cy="75" r="9" fill="#15171a" stroke="#555" stroke-width="1"/>
+    <ellipse cx="150" cy="78" rx="13" ry="16" fill="url(#tacc${id})" stroke="${shadeT(a.accent,0.5)}" stroke-width="1.2"/>
+    <rect x="88" y="68" width="12" height="6" rx="2" fill="${shadeT(a.accent,0.7)}"/>
+    <path d="M 142 92 L 142 102 L 100 102 L 100 92" fill="none" stroke="#555" stroke-width="2"/>`;},
+
+  ecu(id,a){const pins=a.piggy?6:9;return `
+    <rect x="62" y="50" width="116" height="56" rx="5" fill="${shadeT(a.accent,0.32)}" stroke="${shadeT(a.accent,0.6)}" stroke-width="1.5"/>
+    <rect x="62" y="50" width="116" height="56" rx="5" fill="none" stroke="${a.accent}" stroke-width="1" opacity="0.5"/>
+    <!-- traces -->
+    ${[60,72,84,94].map(y=>`<line x1="70" y1="${y}" x2="170" y2="${y}" stroke="${shadeT(a.accent,0.75)}" stroke-width="0.8" opacity="0.5"/>`).join('')}
+    <!-- main chip -->
+    <rect x="96" y="64" width="38" height="28" rx="2" fill="#15171a" stroke="${shadeT(a.accent,0.8)}" stroke-width="1"/>
+    <circle cx="102" cy="70" r="1.6" fill="${a.accent}"/>
+    ${[...Array(pins)].map((_,i)=>`<rect x="${96+i*(38/pins)+1}" y="60" width="2" height="4" fill="#888"/><rect x="${96+i*(38/pins)+1}" y="92" width="2" height="4" fill="#888"/>`).join('')}
+    <!-- caps -->
+    <circle cx="150" cy="68" r="6" fill="#2a2d30" stroke="#666" stroke-width="1"/>
+    <circle cx="150" cy="88" r="5" fill="#2a2d30" stroke="#666" stroke-width="1"/>
+    <rect x="76" y="64" width="10" height="28" rx="1" fill="#2a2d30" stroke="#555" stroke-width="0.8"/>
+    <!-- connector -->
+    <rect x="56" y="68" width="8" height="22" rx="1" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1"/>`;},
+
+  fuelpump(id,a){return `
+    <rect x="92" y="48" width="56" height="56" rx="10" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1.5"/>
+    <rect x="92" y="60" width="56" height="6" fill="${shadeT(a.accent,0.6)}"/>
+    <rect x="92" y="86" width="56" height="6" fill="${shadeT(a.accent,0.6)}"/>
+    <rect x="78" y="58" width="16" height="9" rx="2" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1"/>
+    <rect x="146" y="84" width="16" height="9" rx="2" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1"/>
+    <path d="M 120 70 q 6 4 0 10 q -6 4 0 10" stroke="${a.accent}" stroke-width="2" fill="none"/>
+    <path d="M 120 60 l -5 8 h 10 Z" fill="${a.accent}"/>`;},
+
+  antilag(id,a){return `
+    <rect x="50" y="68" width="60" height="18" rx="4" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1.4"/>
+    <ellipse cx="110" cy="77" rx="6" ry="9" fill="#15171a" stroke="#555" stroke-width="1"/>
+    <path d="M 116 77 Q 150 50 196 60 Q 165 78 196 95 Q 150 104 116 77 Z" fill="url(#tflame${id})" opacity="0.95"/>
+    <path d="M 120 77 Q 145 62 175 68 Q 152 78 175 88 Q 145 92 120 77 Z" fill="#fff3b0" opacity="0.7"/>
+    ${[[182,52],[190,72],[178,96]].map(([x,y])=>`<path d="M ${x} ${y} l 3 -5 l 1 5 l 5 1 l -5 1 l -1 5 l -3 -5 l -5 -1 Z" fill="${a.accent}"/>`).join('')}`;},
+
+  battery(id,a){return `
+    <rect x="74" y="56" width="92" height="52" rx="4" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1.5"/>
+    <rect x="74" y="56" width="92" height="20" rx="4" fill="${shadeT(a.accent,0.4)}"/>
+    <rect x="84" y="48" width="14" height="9" rx="2" fill="#cfd3d6" stroke="#555" stroke-width="1"/>
+    <rect x="142" y="48" width="14" height="9" rx="2" fill="#444" stroke="#222" stroke-width="1"/>
+    <text x="91" y="55" font-family="sans-serif" font-size="11" font-weight="900" fill="#fff" text-anchor="middle">+</text>
+    <text x="149" y="55" font-family="sans-serif" font-size="11" font-weight="900" fill="#fff" text-anchor="middle">−</text>
+    <!-- BMS module + display -->
+    <rect x="92" y="82" width="56" height="20" rx="3" fill="#15171a" stroke="${a.accent}" stroke-width="1"/>
+    <rect x="98" y="86" width="20" height="12" rx="1" fill="${shadeT(a.accent,0.5)}"/>
+    ${[124,132,140].map(x=>`<circle cx="${x}" cy="92" r="2.5" fill="${a.accent}"/>`).join('')}`;},
+
+  rotor(id,a){const R=30;const v=[[0,-R],[R*0.866,R*0.5],[-R*0.866,R*0.5]];
+    const arc=(p2)=>`A ${R*2} ${R*2} 0 0 1 ${p2[0]} ${p2[1]}`;
+    const rotor=`M ${v[0][0]} ${v[0][1]} ${arc(v[1])} ${arc(v[2])} ${arc(v[0])} Z`;
+    return `
+    <ellipse cx="120" cy="76" rx="48" ry="38" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1.5"/>
+    <ellipse cx="120" cy="76" rx="48" ry="38" fill="none" stroke="${shadeT(a.accent,0.7)}" stroke-width="1" opacity="0.5"/>
+    <g transform="translate(120,76) rotate(12)">
+      <path d="${rotor}" fill="url(#tacc${id})" stroke="${shadeT(a.accent,0.4)}" stroke-width="1.5"/>
+      <circle cx="0" cy="0" r="8" fill="#26292c" stroke="#555" stroke-width="1.2"/><circle cx="0" cy="0" r="3" fill="#777"/>
+      ${v.map(p=>`<circle cx="${p[0]*0.78}" cy="${p[1]*0.78}" r="2.2" fill="${shadeT(a.accent,0.5)}"/>`).join('')}
+    </g>
+    <rect x="166" y="68" width="16" height="16" rx="2" fill="#15171a" stroke="#555" stroke-width="1"/>
+    <rect x="58" y="68" width="16" height="16" rx="2" fill="#15171a" stroke="#555" stroke-width="1"/>
+    <path d="M 174 60 l 0 -8 m -3 4 l 3 -4 l 3 4" stroke="${a.accent}" stroke-width="1.6" fill="none"/>`;},
+
+  cone(id,a){return `
+    <path d="M 96 52 L 156 64 L 156 92 L 96 104 Z" fill="url(#tacc${id})" stroke="${shadeT(a.accent,0.5)}" stroke-width="1.4"/>
+    ${[0,1,2,3,4,5].map(i=>`<line x1="${100+i*9}" y1="${54+i*1.6}" x2="${100+i*9}" y2="${102-i*1.6}" stroke="${shadeT(a.accent,0.65)}" stroke-width="1.4"/>`).join('')}
+    <ellipse cx="96" cy="78" rx="6" ry="26" fill="${shadeT(a.accent,0.45)}" stroke="${shadeT(a.accent,0.6)}" stroke-width="1"/>
+    <rect x="156" y="70" width="14" height="16" rx="2" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1"/>
+    <rect x="168" y="66" width="30" height="24" rx="4" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1.2"/>
+    <rect x="170" y="72" width="26" height="3" fill="#15171a"/><rect x="170" y="80" width="26" height="3" fill="#15171a"/>`;},
+
+  timer(id,a){return `
+    <rect x="78" y="52" width="84" height="50" rx="8" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1.5"/>
+    <rect x="86" y="60" width="68" height="26" rx="3" fill="#0a1410" stroke="${shadeT(a.accent,0.7)}" stroke-width="1.2"/>
+    <text x="120" y="80" font-family="'Barlow Condensed',monospace" font-size="19" font-weight="900" fill="${a.accent}" text-anchor="middle" letter-spacing="2">0:30</text>
+    ${[96,108,120,132,144].map((x,i)=>`<circle cx="${x}" cy="94" r="2.4" fill="${i<3?a.accent:'#444'}"/>`).join('')}`;},
+
+  cooler(id,a){return `
+    <rect x="68" y="54" width="104" height="48" rx="3" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1.4"/>
+    ${[...Array(9)].map((_,i)=>`<line x1="72" y1="${58+i*5}" x2="168" y2="${58+i*5}" stroke="#15171a" stroke-width="2"/>`).join('')}
+    <rect x="64" y="50" width="10" height="56" rx="3" fill="url(#tacc${id})" stroke="${shadeT(a.accent,0.5)}" stroke-width="1"/>
+    <rect x="166" y="50" width="10" height="56" rx="3" fill="url(#tacc${id})" stroke="${shadeT(a.accent,0.5)}" stroke-width="1"/>
+    <rect x="50" y="58" width="16" height="8" rx="2" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1"/>
+    <rect x="174" y="90" width="16" height="8" rx="2" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1"/>`;},
+
+  injector(id,a){const xs=[80,108,136,164];return `
+    <rect x="64" y="56" width="116" height="13" rx="6" fill="url(#tacc${id})" stroke="${shadeT(a.accent,0.5)}" stroke-width="1.2"/>
+    ${xs.map(x=>`
+      <rect x="${x-4}" y="68" width="8" height="20" rx="2" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      <rect x="${x-5}" y="64" width="10" height="6" rx="1" fill="#2a2d30"/>
+      <path d="M ${x} 88 l -6 16 m 6 -16 l 0 18 m 0 -18 l 6 16" stroke="${a.accent}" stroke-width="1.4" opacity="0.8"/>
+      ${[ -4,0,4].map(dx=>`<circle cx="${x+dx*2.2}" cy="${104}" r="1.4" fill="${a.accent}" opacity="0.7"/>`).join('')}`).join('')}`;},
+
+  methanol(id,a){return `
+    <rect x="80" y="50" width="44" height="58" rx="8" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1.4"/>
+    <rect x="84" y="74" width="36" height="30" rx="4" fill="${shadeT(a.accent,0.55)}" opacity="0.85"/>
+    <rect x="84" y="74" width="36" height="6" fill="${a.accent}" opacity="0.6"/>
+    <rect x="94" y="42" width="16" height="10" rx="2" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1"/>
+    <path d="M 124 64 q 22 0 26 14" fill="none" stroke="#555" stroke-width="2.5"/>
+    <rect x="148" y="74" width="12" height="14" rx="2" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1"/>
+    <path d="M 160 81 Q 178 72 192 76 M 160 81 Q 180 81 194 84 M 160 81 Q 178 90 190 94" stroke="${a.accent}" stroke-width="1.6" fill="none" opacity="0.8"/>
+    ${[[180,70],[190,82],[182,92]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="2" fill="${a.accent}" opacity="0.7"/>`).join('')}`;},
+
+  twin(id,a){return `${tSnail(id,84,82,0.62,a.accent)}${tSnail(id,160,66,0.62,a.accent)}
+    <path d="M 96 82 Q 130 90 148 70" fill="none" stroke="url(#tchr${id})" stroke-width="6" opacity="0.7"/>`;},
+
+  headers(id,a){return `
+    ${[58,82,106,130].map((x,i)=>`<path d="M ${x} 54 C ${x} 78 ${118-i*2} ${78+i*3} 150 ${86}" fill="none" stroke="url(#tchr${id})" stroke-width="7" opacity="0.9"/>`).join('')}
+    ${[58,82,106,130].map(x=>`<ellipse cx="${x}" cy="53" rx="6" ry="3" fill="${shadeT(a.accent,0.7)}"/>`).join('')}
+    <path d="M 148 80 Q 168 86 168 92 L 190 92" fill="none" stroke="url(#tchr${id})" stroke-width="12"/>
+    <rect x="186" y="86" width="14" height="12" rx="2" fill="url(#tacc${id})" stroke="${shadeT(a.accent,0.5)}" stroke-width="1"/>`;},
+
+  springs(id,a){const xs=[92,148];return `
+    <rect x="60" y="100" width="120" height="10" rx="3" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1"/>
+    ${xs.map(x=>`
+      <path d="${[0,1,2,3,4].map(i=>`M ${x-13} ${56+i*8} L ${x+13} ${60+i*8}`).join(' ')}" stroke="url(#tacc${id})" stroke-width="3.5" fill="none"/>
+      <ellipse cx="${x}" cy="52" rx="15" ry="5" fill="${shadeT(a.accent,0.7)}"/>
+      <rect x="${x-2}" y="56" width="4" height="46" fill="url(#tchr${id})"/>
+      <ellipse cx="${x}" cy="104" rx="11" ry="4" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1"/>`).join('')}`;},
+
+  nitrous(id,a){return `
+    <rect x="98" y="44" width="44" height="68" rx="20" fill="url(#tacc${id})" stroke="${shadeT(a.accent,0.5)}" stroke-width="1.6"/>
+    <rect x="98" y="60" width="44" height="14" fill="#fff" opacity="0.13"/>
+    <ellipse cx="120" cy="46" rx="22" ry="7" fill="${shadeT(a.accent,1.15)}"/>
+    <rect x="112" y="32" width="16" height="14" rx="2" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1.2"/>
+    <circle cx="120" cy="30" r="6" fill="url(#tchr${id})" stroke="#3a3d40" stroke-width="1"/>
+    <path d="M 134 40 q 18 2 18 22 l 0 30" fill="none" stroke="#888" stroke-width="3"/>
+    <path d="M 152 92 l -4 8 l 8 0 Z" fill="${a.accent}"/>
+    <text x="120" y="86" font-family="'Barlow Condensed',sans-serif" font-size="13" font-weight="900" fill="#fff" text-anchor="middle" opacity="0.9">N₂O</text>`;},
+
+  intercooler(id,a){return `
+    <rect x="52" y="50" width="136" height="56" rx="4" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1.5"/>
+    ${[...Array(11)].map((_,i)=>`<line x1="${58+i*12}" y1="54" x2="${58+i*12}" y2="102" stroke="#15171a" stroke-width="2.4"/>`).join('')}
+    ${[64,78,92].map(y=>`<line x1="54" y1="${y}" x2="186" y2="${y}" stroke="#2a2d30" stroke-width="1"/>`).join('')}
+    <rect x="48" y="46" width="10" height="64" rx="3" fill="url(#tacc${id})" stroke="${shadeT(a.accent,0.5)}" stroke-width="1"/>
+    <rect x="182" y="46" width="10" height="64" rx="3" fill="url(#tacc${id})" stroke="${shadeT(a.accent,0.5)}" stroke-width="1"/>
+    <path d="M 40 60 q -12 0 -12 12" fill="none" stroke="url(#tchr${id})" stroke-width="9"/>
+    <path d="M 200 96 q 12 0 12 -12" fill="none" stroke="url(#tchr${id})" stroke-width="9"/>`;},
+
+  coil(id,a){return `
+    <rect x="74" y="50" width="40" height="34" rx="4" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1.4"/>
+    <rect x="74" y="50" width="40" height="10" rx="4" fill="${shadeT(a.accent,0.5)}"/>
+    <rect x="88" y="44" width="12" height="8" rx="2" fill="#2a2d30"/>
+    <rect x="90" y="84" width="8" height="14" fill="url(#tchr${id})"/>
+    <!-- spark plug -->
+    <rect x="86" y="98" width="16" height="10" rx="2" fill="#cfd3d6" stroke="#555" stroke-width="1"/>
+    <rect x="90" y="108" width="8" height="8" fill="#888"/>
+    <!-- arc to second coil -->
+    <path d="M 118 70 l 14 -6 l -6 10 l 16 -4 l -10 12 l 14 -2" fill="none" stroke="${a.accent}" stroke-width="2.4" stroke-linejoin="round"/>
+    <rect x="150" y="58" width="40" height="34" rx="4" fill="url(#tmet${id})" stroke="#4a4d50" stroke-width="1.4"/>
+    <rect x="150" y="58" width="40" height="10" rx="4" fill="${shadeT(a.accent,0.5)}"/>
+    ${[[126,60],[140,66],[152,54]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="2" fill="${a.accent}"/>`).join('')}`;},
+};
+
+function tBadge(art){
+  const t=art.badge||''; if(!t) return '';
+  const w=t.length*6.2+12;
+  return `<g transform="translate(8,132)">
+    <rect x="0" y="0" width="${w}" height="15" rx="7.5" fill="#0008" stroke="${art.accent}" stroke-width="1"/>
+    <text x="${w/2}" y="11" font-family="'Barlow Condensed',sans-serif" font-size="10" font-weight="700" fill="${art.accent}" text-anchor="middle" letter-spacing="0.5">${t}</text>
+  </g>`;
+}
+
+function tuningSVG(id){
+  const art=TUNING_ART[id]; if(!art) return '';
+  const drawer=PART[art.type]||PART.ecu;
+  return `<svg viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">
+    ${tDefs(id, art.accent)}
+    <rect x="0" y="0" width="240" height="150" fill="url(#tglow${id})"/>
+    ${drawer(id,art)}
+    ${tBadge(art)}
+  </svg>`;
+}
+
+// ── DRIVETRAIN ART (parametric SVG) ─────────────────────────────────────────
+// ── PARAMETRIC SVG DRIVETRAIN-PART ILLUSTRATOR ──────────────────────────────
+// Icon-style driveline parts. viewBox 0 0 240 150. Matches engine/chassis/tuning.
+
+function shadeD(hex, f){
+  const n=parseInt(hex.slice(1),16);
+  let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  r=Math.min(255,Math.round(r*f));g=Math.min(255,Math.round(g*f));b=Math.min(255,Math.round(b*f));
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+
+const DRIVETRAIN_ART = {
+  401:{type:'diff',     accent:'#D85A30', badge:'LSD'},
+  402:{type:'handbrake',accent:'#e67e22', badge:'DRIFT'},
+  403:{type:'driveshaft',accent:'#95a5a6',badge:'DRIVELINE'},
+  404:{type:'shifter',  accent:'#e67e22', badge:'SHIFTER'},
+  405:{type:'flywheel', accent:'#e74c3c', badge:'FLYWHEEL'},
+  406:{type:'axles',    accent:'#7f8c8d', badge:'AXLES'},
+  407:{type:'gearbox',  accent:'#3498db', badge:'DCT', speed:'D', dct:true},
+  408:{type:'converter',accent:'#f1c40f', badge:'AUTO'},
+  409:{type:'clutch',   accent:'#e74c3c', badge:'CLUTCH'},
+  410:{type:'diff',     accent:'#e67e22', badge:'POSI', posi:true},
+  411:{type:'transbrake',accent:'#e74c3c',badge:'DRAG'},
+  412:{type:'diff',     accent:'#16a085', badge:'4WD', locked:true},
+  413:{type:'diff',     accent:'#D85A30', badge:'LSD'},
+  414:{type:'gearbox',  accent:'#2980b9', badge:'5-SPD', speed:'5'},
+  415:{type:'gearbox',  accent:'#3498db', badge:'6-SPD', speed:'6', big:true},
+  416:{type:'gearbox',  accent:'#5d6d7e', badge:'4-SPD', speed:'4', small:true},
+  417:{type:'transfer', accent:'#16a085', badge:'4WD'},
+  418:{type:'locker',   accent:'#1abc9c', badge:'4WD'},
+};
+
+function dDefs(id, accent){
+  const a2=shadeD(accent,0.5);
+  return `<defs>
+    <linearGradient id="dmet${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#43474b"/><stop offset="0.5" stop-color="#2b2e31"/><stop offset="1" stop-color="#191b1d"/>
+    </linearGradient>
+    <linearGradient id="dacc${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${accent}"/><stop offset="1" stop-color="${a2}"/>
+    </linearGradient>
+    <linearGradient id="dchr${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8e8e8"/><stop offset="0.5" stop-color="#9aa0a6"/><stop offset="1" stop-color="#6b7075"/>
+    </linearGradient>
+    <radialGradient id="ddglow${id}" cx="0.5" cy="0.45" r="0.62">
+      <stop offset="0" stop-color="${accent}" stop-opacity="0.22"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="dmetr${id}" cx="0.4" cy="0.35" r="0.8">
+      <stop offset="0" stop-color="#52565a"/><stop offset="1" stop-color="#1c1e20"/>
+    </radialGradient>
+  </defs>`;
+}
+
+// gear teeth ring helper
+function teeth(cx,cy,r,n,col,len=4){
+  return [...Array(n)].map((_,i)=>{const a=i/n*Math.PI*2;const x1=cx+Math.cos(a)*r,y1=cy+Math.sin(a)*r,x2=cx+Math.cos(a)*(r+len),y2=cy+Math.sin(a)*(r+len);return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col}" stroke-width="2.4"/>`;}).join('');
+}
+function boltCircle(cx,cy,r,n,col){
+  return [...Array(n)].map((_,i)=>{const a=i/n*Math.PI*2 - Math.PI/2;return `<circle cx="${(cx+Math.cos(a)*r).toFixed(1)}" cy="${(cy+Math.sin(a)*r).toFixed(1)}" r="2.2" fill="${col}"/>`;}).join('');
+}
+
+const DPART = {
+  diff(id,a){
+    const cx=120,cy=78;
+    const lock = a.locked ? `<g transform="translate(${cx},${cy-2})"><rect x="-7" y="-2" width="14" height="11" rx="2" fill="#15171a" stroke="${a.accent}" stroke-width="1.4"/><path d="M -4 -2 a 4 4 0 0 1 8 0" fill="none" stroke="${a.accent}" stroke-width="1.6"/></g>`
+      : `<circle cx="${cx}" cy="${cy}" r="7" fill="${shadeD(a.accent,0.8)}"/>`;
+    const arrows = a.posi ? `
+      <path d="M 44 64 a 14 14 0 0 1 0 28" fill="none" stroke="${a.accent}" stroke-width="2.2"/><path d="M 44 92 l -4 -2 l 5 -3 Z" fill="${a.accent}"/>
+      <path d="M 196 64 a 14 14 0 0 0 0 28" fill="none" stroke="${a.accent}" stroke-width="2.2"/><path d="M 196 92 l 4 -2 l -5 -3 Z" fill="${a.accent}"/>` : '';
+    const front = a.locked ? `<rect x="${cx-6}" y="44" width="12" height="20" rx="2" fill="url(#dmet${id})" stroke="#4a4d50" stroke-width="1"/><rect x="${cx-9}" y="40" width="18" height="6" rx="2" fill="url(#dchr${id})"/>` : '';
+    return `
+      <!-- axle tubes -->
+      <rect x="40" y="${cy-9}" width="${cx-40}" height="18" rx="4" fill="url(#dmet${id})" stroke="#4a4d50" stroke-width="1"/>
+      <rect x="${cx}" y="${cy-9}" width="${200-cx}" height="18" rx="4" fill="url(#dmet${id})" stroke="#4a4d50" stroke-width="1"/>
+      <rect x="36" y="${cy-12}" width="8" height="24" rx="2" fill="url(#dchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      <rect x="196" y="${cy-12}" width="8" height="24" rx="2" fill="url(#dchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      ${front}
+      <!-- pumpkin -->
+      <circle cx="${cx}" cy="${cy}" r="30" fill="url(#dmetr${id})" stroke="#4a4d50" stroke-width="1.5"/>
+      ${teeth(cx,cy,24,24,shadeD(a.accent,0.7),4)}
+      <circle cx="${cx}" cy="${cy}" r="24" fill="none" stroke="url(#dacc${id})" stroke-width="3"/>
+      <circle cx="${cx}" cy="${cy}" r="15" fill="#26292c" stroke="#555" stroke-width="1"/>
+      ${lock}
+      <!-- pinion flange -->
+      <rect x="${cx-6}" y="106" width="12" height="14" rx="2" fill="url(#dchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      ${arrows}`;
+  },
+
+  locker(id,a){
+    const cx=120, y=88;
+    return `
+      <rect x="30" y="${y-7}" width="180" height="14" rx="6" fill="url(#dmet${id})" stroke="#4a4d50" stroke-width="1.2"/>
+      <circle cx="42" cy="${y}" r="15" fill="url(#dmetr${id})" stroke="#4a4d50" stroke-width="1.2"/><circle cx="42" cy="${y}" r="6" fill="#26292c"/>
+      <circle cx="198" cy="${y}" r="15" fill="url(#dmetr${id})" stroke="#4a4d50" stroke-width="1.2"/><circle cx="198" cy="${y}" r="6" fill="#26292c"/>
+      <circle cx="${cx}" cy="${y}" r="26" fill="url(#dmetr${id})" stroke="#4a4d50" stroke-width="1.5"/>
+      ${teeth(cx,y,20,22,shadeD(a.accent,0.7),3.5)}
+      <circle cx="${cx}" cy="${y}" r="20" fill="none" stroke="url(#dacc${id})" stroke-width="3"/>
+      <g transform="translate(${cx},${y})"><rect x="-7" y="-3" width="14" height="11" rx="2" fill="#15171a" stroke="${a.accent}" stroke-width="1.4"/><path d="M -4 -3 a 4 4 0 0 1 8 0" fill="none" stroke="${a.accent}" stroke-width="1.6"/></g>
+      <rect x="${cx-6}" y="${y+24}" width="12" height="12" rx="2" fill="url(#dchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      <!-- spring perches -->
+      <rect x="80" y="${y-12}" width="10" height="6" fill="${shadeD(a.accent,0.6)}"/><rect x="150" y="${y-12}" width="10" height="6" fill="${shadeD(a.accent,0.6)}"/>`;
+  },
+
+  transfer(id,a){
+    return `
+      <!-- main case -->
+      <path d="M 78 56 Q 76 50 84 50 L 150 50 Q 162 50 168 62 L 174 92 Q 176 100 166 100 L 84 100 Q 74 100 74 92 Z" fill="url(#dmet${id})" stroke="#4a4d50" stroke-width="1.5"/>
+      ${[0,1,2,3].map(i=>`<line x1="${92+i*18}" y1="56" x2="${94+i*18}" y2="96" stroke="#15171a" stroke-width="2" opacity="0.5"/>`).join('')}
+      <!-- input flange top -->
+      <rect x="112" y="40" width="22" height="12" rx="2" fill="url(#dchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      <!-- rear output -->
+      <circle cx="178" cy="80" r="13" fill="url(#dmetr${id})" stroke="#4a4d50" stroke-width="1.2"/><circle cx="178" cy="80" r="5" fill="url(#dacc${id})"/>
+      <!-- front output (lower) -->
+      <circle cx="66" cy="92" r="11" fill="url(#dmetr${id})" stroke="#4a4d50" stroke-width="1.2"/><circle cx="66" cy="92" r="4" fill="url(#dacc${id})"/>
+      <!-- chain link -->
+      <path d="M 66 92 Q 110 70 178 80" fill="none" stroke="${a.accent}" stroke-width="2" stroke-dasharray="4 3" opacity="0.8"/>
+      <!-- low range lever -->
+      <rect x="120" y="34" width="4" height="14" rx="2" fill="url(#dchr${id})"/><circle cx="122" cy="32" r="5" fill="url(#dacc${id})"/>`;
+  },
+
+  handbrake(id,a){
+    return `
+      <rect x="64" y="100" width="80" height="12" rx="3" fill="url(#dmet${id})" stroke="#4a4d50" stroke-width="1.2"/>
+      <!-- lever -->
+      <rect x="78" y="48" width="11" height="58" rx="5" transform="rotate(-22 83 78)" fill="url(#dchr${id})" stroke="#3a3d40" stroke-width="1.2"/>
+      <!-- grip -->
+      <rect x="58" y="40" width="26" height="14" rx="7" fill="url(#dacc${id})" stroke="${shadeD(a.accent,0.5)}" stroke-width="1.2"/>
+      <circle cx="64" cy="47" r="3" fill="#15171a"/>
+      <!-- pivot -->
+      <circle cx="92" cy="100" r="5" fill="#26292c" stroke="#555" stroke-width="1"/>
+      <!-- master cylinder + reservoir -->
+      <rect x="120" y="78" width="14" height="30" rx="3" fill="url(#dmet${id})" stroke="#4a4d50" stroke-width="1.2"/>
+      <rect x="118" y="64" width="18" height="16" rx="3" fill="${shadeD(a.accent,0.55)}" stroke="${shadeD(a.accent,0.5)}" stroke-width="1"/>
+      <rect x="122" y="60" width="10" height="6" rx="2" fill="url(#dchr${id})"/>
+      <path d="M 110 100 q 6 -6 12 -4" fill="none" stroke="#555" stroke-width="2.5"/>`;
+  },
+
+  driveshaft(id,a){
+    const yoke=(x,dir)=>`
+      <rect x="${x-(dir>0?0:10)}" y="68" width="10" height="20" rx="2" fill="url(#dchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      <circle cx="${x+(dir>0?2:8)}" cy="78" r="9" fill="url(#dmetr${id})" stroke="#4a4d50" stroke-width="1.2"/>
+      <path d="M ${x+(dir>0?2:8)-7} 78 h 14 M ${x+(dir>0?2:8)} 71 v 14" stroke="${a.accent}" stroke-width="2.4"/>`;
+    return `
+      <rect x="66" y="71" width="108" height="14" rx="7" fill="url(#dchr${id})" stroke="#3a3d40" stroke-width="1.2"/>
+      <rect x="66" y="74" width="108" height="3" fill="#fff" opacity="0.18"/>
+      <rect x="112" y="68" width="8" height="20" rx="2" fill="${shadeD(a.accent,0.6)}"/>
+      ${yoke(56,1)} ${yoke(176,-1)}`;
+  },
+
+  shifter(id,a){
+    return `
+      <!-- gate plate -->
+      <rect x="86" y="92" width="68" height="22" rx="3" fill="url(#dmet${id})" stroke="#4a4d50" stroke-width="1.2"/>
+      <path d="M 96 110 L 96 98 L 144 98 L 144 110 M 120 98 L 120 110" stroke="${shadeD(a.accent,0.7)}" stroke-width="1.6" fill="none"/>
+      <!-- boot -->
+      <path d="M 108 92 L 132 92 L 126 74 L 114 74 Z" fill="#15171a" stroke="#333" stroke-width="1"/>
+      <!-- lever -->
+      <rect x="117" y="44" width="6" height="34" rx="3" fill="url(#dchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      <!-- knob -->
+      <circle cx="120" cy="40" r="13" fill="url(#dacc${id})" stroke="${shadeD(a.accent,0.5)}" stroke-width="1.4"/>
+      <circle cx="116" cy="36" r="4" fill="#fff" opacity="0.25"/>`;
+  },
+
+  flywheel(id,a){
+    const cx=120,cy=76;
+    return `
+      <circle cx="${cx}" cy="${cy}" r="38" fill="url(#dmetr${id})" stroke="#4a4d50" stroke-width="1.5"/>
+      ${teeth(cx,cy,38,40,shadeD(a.accent,0.7),4)}
+      <circle cx="${cx}" cy="${cy}" r="32" fill="none" stroke="#555" stroke-width="1"/>
+      <circle cx="${cx}" cy="${cy}" r="26" fill="url(#dacc${id})" opacity="0.25"/>
+      <circle cx="${cx}" cy="${cy}" r="26" fill="none" stroke="url(#dacc${id})" stroke-width="2.5"/>
+      ${boltCircle(cx,cy,17,6,shadeD(a.accent,0.85))}
+      <circle cx="${cx}" cy="${cy}" r="9" fill="#26292c" stroke="#555" stroke-width="1.2"/>
+      <circle cx="${cx}" cy="${cy}" r="3" fill="#777"/>`;
+  },
+
+  axles(id,a){
+    const shaft=(y)=>`
+      <rect x="56" y="${y}" width="120" height="13" rx="6" fill="url(#dchr${id})" stroke="#3a3d40" stroke-width="1.2"/>
+      <rect x="56" y="${y+3}" width="120" height="3" fill="#fff" opacity="0.16"/>
+      <circle cx="180" cy="${y+6}" r="11" fill="url(#dmetr${id})" stroke="#4a4d50" stroke-width="1.2"/>
+      ${boltCircle(180,y+6,6,5,shadeD(a.accent,0.8))}
+      ${[0,1,2,3,4].map(i=>`<line x1="${52+i*2.2}" y1="${y}" x2="${52+i*2.2}" y2="${y+13}" stroke="${shadeD(a.accent,0.6)}" stroke-width="1.4"/>`).join('')}`;
+    return `${shaft(58)} ${shaft(82)}`;
+  },
+
+  gearbox(id,a){
+    const scale = a.big?1.12 : a.small?0.86 : 1;
+    const cx=120, cy=78;
+    const lever = a.dct ? '' : `<rect x="${cx-3}" y="42" width="6" height="22" rx="3" fill="url(#dchr${id})"/><circle cx="${cx}" cy="40" r="7" fill="url(#dacc${id})"/>`;
+    const dctClutch = a.dct ? `<circle cx="58" cy="${cy}" r="9" fill="none" stroke="${a.accent}" stroke-width="2"/>` : '';
+    return `<g transform="translate(${cx},${cy}) scale(${scale}) translate(${-cx},${-cy})">
+      <!-- bell housing -->
+      <path d="M 70 ${cy} a 28 28 0 1 1 0 1 Z" fill="url(#dmet${id})" stroke="#4a4d50" stroke-width="1.4"/>
+      <circle cx="70" cy="${cy}" r="28" fill="url(#dmet${id})" stroke="#4a4d50" stroke-width="1.4"/>
+      ${boltCircle(70,cy,23,8,'#15171a')}
+      <circle cx="70" cy="${cy}" r="13" fill="#26292c" stroke="#555" stroke-width="1"/>
+      ${dctClutch}
+      <!-- main case (tapered) -->
+      <path d="M 90 ${cy-22} L 158 ${cy-14} L 166 ${cy} L 158 ${cy+14} L 90 ${cy+22} Z" fill="url(#dmet${id})" stroke="#4a4d50" stroke-width="1.4"/>
+      ${[0,1,2,3,4].map(i=>`<line x1="${100+i*13}" y1="${cy-18}" x2="${100+i*13}" y2="${cy+18}" stroke="#15171a" stroke-width="2" opacity="0.5"/>`).join('')}
+      <!-- tailshaft output -->
+      <rect x="166" y="${cy-6}" width="26" height="12" rx="3" fill="url(#dchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      <circle cx="194" cy="${cy}" r="7" fill="url(#dacc${id})"/>
+      ${lever}
+      <!-- speed badge -->
+      <circle cx="128" cy="${cy}" r="13" fill="#15171a" stroke="${a.accent}" stroke-width="1.4"/>
+      <text x="128" y="${cy+5}" font-family="'Barlow Condensed',sans-serif" font-size="17" font-weight="900" fill="${a.accent}" text-anchor="middle">${a.speed||''}</text>
+    </g>`;
+  },
+
+  converter(id,a){
+    const cx=118,cy=76,R=36;
+    return `
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#dmetr${id})" stroke="#4a4d50" stroke-width="1.6"/>
+      <ellipse cx="${cx}" cy="${cy}" rx="${R}" ry="${R*0.55}" fill="none" stroke="#555" stroke-width="1" opacity="0.5"/>
+      <!-- turbine fins -->
+      <g stroke="${shadeD(a.accent,0.75)}" stroke-width="2.4" fill="none" opacity="0.85">
+        ${[...Array(14)].map((_,i)=>{const ang=i/14*Math.PI*2;const x1=cx+Math.cos(ang)*12,y1=cy+Math.sin(ang)*12,x2=cx+Math.cos(ang+0.5)*30,y2=cy+Math.sin(ang+0.5)*30;return `<path d="M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${(cx+Math.cos(ang+0.25)*24).toFixed(1)} ${(cy+Math.sin(ang+0.25)*24).toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}"/>`;}).join('')}
+      </g>
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#dacc${id})" opacity="0.12"/>
+      <circle cx="${cx}" cy="${cy}" r="11" fill="#26292c" stroke="#555" stroke-width="1.4"/>
+      <circle cx="${cx}" cy="${cy}" r="4" fill="#777"/>
+      ${[0,1,2].map(i=>{const ang=i/3*Math.PI*2-Math.PI/2;return `<rect x="${(cx+Math.cos(ang)*R-4).toFixed(1)}" y="${(cy+Math.sin(ang)*R-4).toFixed(1)}" width="8" height="8" rx="2" fill="url(#dchr${id})" stroke="#3a3d40" stroke-width="0.8"/>`;}).join('')}`;
+  },
+
+  clutch(id,a){
+    const cx=110,cy=76,R=36;
+    return `
+      <!-- pressure plate behind -->
+      <circle cx="148" cy="${cy+4}" r="30" fill="url(#dmet${id})" stroke="#4a4d50" stroke-width="1.2" opacity="0.85"/>
+      <g stroke="#555" stroke-width="1.6">${[...Array(12)].map((_,i)=>{const ang=i/12*Math.PI*2;return `<line x1="148" y1="${cy+4}" x2="${(148+Math.cos(ang)*28).toFixed(1)}" y2="${(cy+4+Math.sin(ang)*28).toFixed(1)}"/>`;}).join('')}</g>
+      <!-- friction disc -->
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#dmetr${id})" stroke="#4a4d50" stroke-width="1.5"/>
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#dacc${id})" opacity="0.18"/>
+      <g stroke="${shadeD(a.accent,0.7)}" stroke-width="1.6">${[...Array(16)].map((_,i)=>{const ang=i/16*Math.PI*2;return `<line x1="${(cx+Math.cos(ang)*22).toFixed(1)}" y1="${(cy+Math.sin(ang)*22).toFixed(1)}" x2="${(cx+Math.cos(ang)*R).toFixed(1)}" y2="${(cy+Math.sin(ang)*R).toFixed(1)}"/>`;}).join('')}</g>
+      <circle cx="${cx}" cy="${cy}" r="18" fill="#26292c" stroke="#555" stroke-width="1.2"/>
+      <!-- damper springs -->
+      ${[...Array(5)].map((_,i)=>{const ang=i/5*Math.PI*2-Math.PI/2;const x=cx+Math.cos(ang)*12,y=cy+Math.sin(ang)*12;return `<rect x="${(x-3.5).toFixed(1)}" y="${(y-2.5).toFixed(1)}" width="7" height="5" rx="2.5" fill="${a.accent}" transform="rotate(${(ang*180/Math.PI+90).toFixed(0)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`;}).join('')}
+      <circle cx="${cx}" cy="${cy}" r="5" fill="#15171a" stroke="#666" stroke-width="1"/>`;
+  },
+
+  transbrake(id,a){
+    return `
+      <!-- valve body block -->
+      <rect x="76" y="70" width="76" height="36" rx="5" fill="url(#dmet${id})" stroke="#4a4d50" stroke-width="1.5"/>
+      ${[0,1,2].map(i=>`<line x1="${84+i*22}" y1="74" x2="${84+i*22}" y2="102" stroke="#15171a" stroke-width="2" opacity="0.5"/>`).join('')}
+      <!-- solenoids -->
+      <rect x="84" y="56" width="14" height="16" rx="3" fill="url(#dchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      <rect x="130" y="56" width="14" height="16" rx="3" fill="url(#dchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      <!-- big launch button -->
+      <circle cx="120" cy="50" r="13" fill="url(#dacc${id})" stroke="${shadeD(a.accent,0.45)}" stroke-width="2"/>
+      <circle cx="120" cy="50" r="6" fill="${shadeD(a.accent,1.2)}"/>
+      <circle cx="117" cy="47" r="2.5" fill="#fff" opacity="0.5"/>
+      <!-- connector + wire -->
+      <rect x="150" y="84" width="14" height="10" rx="2" fill="#15171a" stroke="#666" stroke-width="1"/>
+      <path d="M 164 89 q 14 0 16 -10" fill="none" stroke="${a.accent}" stroke-width="2"/>
+      <!-- stage light -->
+      <circle cx="64" cy="80" r="6" fill="${a.accent}"/><circle cx="64" cy="80" r="6" fill="#fff" opacity="0.25"/>`;
+  },
+};
+
+function dBadge(art){
+  const t=art.badge||''; if(!t) return '';
+  const w=t.length*6.2+12;
+  return `<g transform="translate(8,132)">
+    <rect x="0" y="0" width="${w}" height="15" rx="7.5" fill="#0008" stroke="${art.accent}" stroke-width="1"/>
+    <text x="${w/2}" y="11" font-family="'Barlow Condensed',sans-serif" font-size="10" font-weight="700" fill="${art.accent}" text-anchor="middle" letter-spacing="0.5">${t}</text>
+  </g>`;
+}
+
+function drivetrainSVG(id){
+  const art=DRIVETRAIN_ART[id]; if(!art) return '';
+  const drawer=DPART[art.type]||DPART.diff;
+  return `<svg viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">
+    ${dDefs(id, art.accent)}
+    <rect x="0" y="0" width="240" height="150" fill="url(#ddglow${id})"/>
+    ${drawer(id,art)}
+    ${dBadge(art)}
+  </svg>`;
+}
+
+// ── HANDLING ART (parametric SVG) ───────────────────────────────────────────
+// ── PARAMETRIC SVG HANDLING-PART ILLUSTRATOR ────────────────────────────────
+// Tyres, suspension, brakes. viewBox 0 0 240 150. Matches the rest of the set.
+
+function shadeH(hex, f){
+  const n=parseInt(hex.slice(1),16);
+  let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  r=Math.min(255,Math.round(r*f));g=Math.min(255,Math.round(g*f));b=Math.min(255,Math.round(b*f));
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+
+const HANDLING_ART = {
+  // Tyres
+  501:{type:'tyre', accent:'#D85A30', badge:'TYRES', tread:'perf'},
+  502:{type:'tyre', accent:'#e74c3c', badge:'TYRES', tread:'semi'},
+  503:{type:'tyre', accent:'#f1c40f', badge:'DRAG',  tread:'slick', fat:true},
+  504:{type:'tyre', accent:'#16a085', badge:'TYRES', tread:'at',   knobby:true},
+  505:{type:'tyre', accent:'#e67e22', badge:'MUD',   tread:'mt',   knobby:true},
+  506:{type:'tyre', accent:'#95a5a6', badge:'BUDGET',tread:'perf'},
+  507:{type:'tyre', accent:'#3498db', badge:'TYRES', tread:'dir'},
+  508:{type:'tyre', accent:'#9b59b6', badge:'STANCE',tread:'perf', fat:true},
+  509:{type:'tyre', accent:'#e74c3c', badge:'TYRES', tread:'semi'},
+  510:{type:'tyre', accent:'#5d6d7e', badge:'RUNFLAT',tread:'perf'},
+  // Suspension
+  511:{type:'coilover', accent:'#D85A30', badge:'COILOVER', adj:true},
+  512:{type:'spring',   accent:'#e67e22', badge:'LOWERED'},
+  513:{type:'liftkit',  accent:'#16a085', badge:'LIFT'},
+  514:{type:'strut',    accent:'#3498db', badge:'STRUT'},
+  515:{type:'camber',   accent:'#9b59b6', badge:'CAMBER'},
+  516:{type:'swaybar',  accent:'#f1c40f', badge:'ANTI-ROLL'},
+  517:{type:'airsusp',  accent:'#1abc9c', badge:'AIR'},
+  518:{type:'coilover', accent:'#e74c3c', badge:'RALLY', rally:true},
+  519:{type:'arm',      accent:'#7f8c8d', badge:'ARMS'},
+  520:{type:'coilover', accent:'#f1c40f', badge:'DRAG', drag:true},
+  // Brakes
+  521:{type:'rotor',  accent:'#e74c3c', badge:'BRAKES', slotted:true},
+  522:{type:'rotor',  accent:'#D85A30', badge:'BRAKES', drilled:true},
+  523:{type:'bbk',    accent:'#f1c40f', badge:'BIG BRAKE'},
+  524:{type:'pad',    accent:'#16a085', badge:'PADS', ceramic:true},
+  525:{type:'pad',    accent:'#95a5a6', badge:'BUDGET'},
+  526:{type:'rotor',  accent:'#e67e22', badge:'RALLY'},
+  527:{type:'caliper',accent:'#e74c3c', badge:'4-POT', pots:4},
+  528:{type:'ducts',  accent:'#3498db', badge:'COOLING'},
+  529:{type:'fluid',  accent:'#f39c12', badge:'FLUID'},
+  530:{type:'absdelete',accent:'#e74c3c', badge:'NO ABS'},
+};
+
+function hDefs(id, accent){
+  const a2=shadeH(accent,0.5);
+  return `<defs>
+    <linearGradient id="hmet${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#43474b"/><stop offset="0.5" stop-color="#2b2e31"/><stop offset="1" stop-color="#191b1d"/>
+    </linearGradient>
+    <linearGradient id="hacc${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${accent}"/><stop offset="1" stop-color="${a2}"/>
+    </linearGradient>
+    <linearGradient id="hchr${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8e8e8"/><stop offset="0.5" stop-color="#9aa0a6"/><stop offset="1" stop-color="#6b7075"/>
+    </linearGradient>
+    <radialGradient id="hglow${id}" cx="0.5" cy="0.45" r="0.62">
+      <stop offset="0" stop-color="${accent}" stop-opacity="0.22"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="hrub${id}" cx="0.4" cy="0.35" r="0.85">
+      <stop offset="0" stop-color="#34373a"/><stop offset="1" stop-color="#0d0e10"/>
+    </radialGradient>
+    <radialGradient id="hrotor${id}" cx="0.4" cy="0.35" r="0.85">
+      <stop offset="0" stop-color="#5a5e62"/><stop offset="1" stop-color="#222426"/>
+    </radialGradient>
+  </defs>`;
+}
+
+function spokes5(cx,cy,r,col){
+  return [...Array(5)].map((_,i)=>{const a=i/5*Math.PI*2-Math.PI/2;return `<line x1="${cx}" y1="${cy}" x2="${(cx+Math.cos(a)*r).toFixed(1)}" y2="${(cy+Math.sin(a)*r).toFixed(1)}" stroke="${col}" stroke-width="3"/>`;}).join('');
+}
+
+const HPART = {
+  tyre(id,a){
+    const cx=120, cy=74;
+    const fat = a.fat;
+    const R = fat? 50 : 46;
+    const sidewall = fat? 0.52 : 0.62; // rim ratio
+    const rimR = R*sidewall;
+    const tread = a.tread;
+    let treadMarks='';
+    if(tread==='slick'){
+      treadMarks = `<circle cx="${cx}" cy="${cy}" r="${R-3}" fill="none" stroke="#000" stroke-width="1" opacity="0.3"/>`;
+    } else if(tread==='at' || tread==='mt'){
+      const n = tread==='mt'? 14:20;
+      const len = tread==='mt'? 9:6;
+      treadMarks = [...Array(n)].map((_,i)=>{const ang=i/n*Math.PI*2;const x1=cx+Math.cos(ang)*(R-len),y1=cy+Math.sin(ang)*(R-len),x2=cx+Math.cos(ang)*(R+2),y2=cy+Math.sin(ang)*(R+2);return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#0c0d0f" stroke-width="${tread==='mt'?6:4}" stroke-linecap="round"/>`;}).join('');
+    } else if(tread==='dir'){
+      treadMarks = [...Array(2)].map((_,k)=>[...Array(11)].map((_,i)=>{const ang=i/11*Math.PI*2;const rr=R-3-k*8;const x=cx+Math.cos(ang)*rr,y=cy+Math.sin(ang)*rr;return `<line x1="${x.toFixed(1)}" y1="${y.toFixed(1)}" x2="${(cx+Math.cos(ang+0.13)*(rr-7)).toFixed(1)}" y2="${(cy+Math.sin(ang+0.13)*(rr-7)).toFixed(1)}" stroke="#0c0d0f" stroke-width="2.5"/>`;}).join('')).join('');
+    } else {
+      // circumferential grooves (perf/semi)
+      const rings = tread==='semi'? [R-5,R-13] : [R-4,R-11,R-18];
+      treadMarks = rings.map(rr=>`<circle cx="${cx}" cy="${cy}" r="${rr}" fill="none" stroke="#0c0d0f" stroke-width="2"/>`).join('');
+    }
+    const sidewallText = fat && tread==='slick' ? `<text x="${cx}" y="${cy-R+13}" font-family="'Barlow Condensed',sans-serif" font-size="8" fill="${a.accent}" text-anchor="middle" opacity="0.8" letter-spacing="1">DRAG</text>` : '';
+    return `
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#hrub${id})" stroke="#000" stroke-width="1.5"/>
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${shadeH(a.accent,0.6)}" stroke-width="1" opacity="0.4"/>
+      ${treadMarks}
+      <circle cx="${cx}" cy="${cy}" r="${rimR+5}" fill="#1a1c1e" stroke="#333" stroke-width="1"/>
+      <circle cx="${cx}" cy="${cy}" r="${rimR}" fill="url(#hmet${id})" stroke="${shadeH(a.accent,0.7)}" stroke-width="2"/>
+      ${spokes5(cx,cy,rimR-2,shadeH(a.accent,0.85))}
+      <circle cx="${cx}" cy="${cy}" r="${rimR*0.3}" fill="#26292c" stroke="#555" stroke-width="1"/>
+      <circle cx="${cx}" cy="${cy}" r="3" fill="${a.accent}"/>
+      ${sidewallText}`;
+  },
+
+  coilover(id,a){
+    const cx=120;
+    const colour = a.rally? a.accent : a.drag? a.accent : a.accent;
+    const adjuster = a.adj ? `<g><circle cx="${cx}" cy="46" r="9" fill="url(#hchr${id})" stroke="#3a3d40" stroke-width="1"/>${[...Array(8)].map((_,i)=>{const ang=i/8*Math.PI*2;return `<line x1="${(cx+Math.cos(ang)*6).toFixed(1)}" y1="${(46+Math.sin(ang)*6).toFixed(1)}" x2="${(cx+Math.cos(ang)*9).toFixed(1)}" y2="${(46+Math.sin(ang)*9).toFixed(1)}" stroke="#555" stroke-width="1.4"/>`;}).join('')}</g>` : '';
+    const travel = a.rally? 9 : a.drag? 7 : 7; // coil pitch
+    const coilTop = a.rally? 50 : 54;
+    const coilBot = 104;
+    const n = Math.floor((coilBot-coilTop)/travel);
+    const coil = [...Array(n)].map((_,i)=>`M ${cx-16} ${coilTop+i*travel} L ${cx+16} ${coilTop+i*travel+travel*0.5}`).join(' ');
+    return `
+      <!-- top mount -->
+      <rect x="${cx-14}" y="34" width="28" height="9" rx="3" fill="url(#hmet${id})" stroke="#4a4d50" stroke-width="1"/>
+      ${adjuster}
+      <!-- damper shaft -->
+      <rect x="${cx-3}" y="42" width="6" height="68" fill="url(#hchr${id})"/>
+      <!-- spring -->
+      <path d="${coil}" fill="none" stroke="url(#hacc${id})" stroke-width="5" stroke-linecap="round"/>
+      <!-- damper body -->
+      <rect x="${cx-9}" y="98" width="18" height="22" rx="3" fill="url(#hmet${id})" stroke="#4a4d50" stroke-width="1.2"/>
+      <!-- lower mount -->
+      <circle cx="${cx}" cy="118" r="7" fill="#26292c" stroke="#555" stroke-width="1.2"/>
+      <circle cx="${cx}" cy="118" r="2.5" fill="#777"/>
+      ${a.rally?`<rect x="${cx+12}" y="64" width="8" height="34" rx="3" fill="url(#hmet${id})" stroke="#4a4d50" stroke-width="1"/>`:''}`;
+  },
+
+  spring(id,a){
+    const cx=120, top=56, bot=104, pitch=7;
+    // lowered = compressed, wider coil
+    const n=Math.floor((bot-top)/pitch);
+    const coil=[...Array(n)].map((_,i)=>`M ${cx-20} ${top+i*pitch} L ${cx+20} ${top+i*pitch+pitch*0.5}`).join(' ');
+    return `
+      <ellipse cx="${cx}" cy="${top-2}" rx="20" ry="5" fill="${shadeH(a.accent,0.7)}"/>
+      <path d="${coil}" fill="none" stroke="url(#hacc${id})" stroke-width="6" stroke-linecap="round"/>
+      <ellipse cx="${cx}" cy="${bot}" rx="20" ry="5" fill="${shadeH(a.accent,0.7)}"/>
+      <!-- down arrow -->
+      <path d="M 70 64 L 70 96 M 64 88 L 70 98 L 76 88" stroke="${a.accent}" stroke-width="2.4" fill="none"/>`;
+  },
+
+  strut(id,a){
+    const cx=118;
+    return `
+      <rect x="${cx-14}" y="36" width="28" height="9" rx="3" fill="url(#hmet${id})" stroke="#4a4d50" stroke-width="1"/>
+      <rect x="${cx-3}" y="44" width="6" height="40" fill="url(#hchr${id})"/>
+      <rect x="${cx-11}" y="78" width="22" height="36" rx="5" fill="url(#hacc${id})" stroke="${shadeH(a.accent,0.5)}" stroke-width="1.4"/>
+      <rect x="${cx-7}" y="84" width="14" height="3" fill="#fff" opacity="0.2"/>
+      <circle cx="${cx}" cy="120" r="6" fill="#26292c" stroke="#555" stroke-width="1"/>
+      <!-- bracket -->
+      <path d="M ${cx-11} 104 L ${cx-22} 110 L ${cx-22} 118" fill="none" stroke="url(#hmet${id})" stroke-width="4"/>`;
+  },
+
+  liftkit(id,a){
+    const cx=120;
+    return `
+      <!-- tall spacer + long shock -->
+      <rect x="${cx-16}" y="34" width="32" height="10" rx="3" fill="url(#hacc${id})" stroke="${shadeH(a.accent,0.5)}" stroke-width="1.2"/>
+      <rect x="${cx-14}" y="44" width="28" height="8" rx="2" fill="${shadeH(a.accent,0.7)}"/>
+      <rect x="${cx-3}" y="50" width="6" height="40" fill="url(#hchr${id})"/>
+      <rect x="${cx-10}" y="84" width="20" height="30" rx="4" fill="url(#hmet${id})" stroke="#4a4d50" stroke-width="1.2"/>
+      <circle cx="${cx}" cy="118" r="6" fill="#26292c" stroke="#555" stroke-width="1"/>
+      <!-- up arrows -->
+      <path d="M 64 110 L 64 74 M 58 84 L 64 72 L 70 84" stroke="${a.accent}" stroke-width="2.4" fill="none"/>
+      <path d="M 176 110 L 176 74 M 170 84 L 176 72 L 182 84" stroke="${a.accent}" stroke-width="2.4" fill="none"/>`;
+  },
+
+  camber(id,a){
+    const cx=120,cy=74;
+    return `
+      <!-- hub at angle -->
+      <g transform="translate(${cx},${cy}) rotate(-16)">
+        <rect x="-9" y="-34" width="18" height="68" rx="5" fill="url(#hmet${id})" stroke="#4a4d50" stroke-width="1.4"/>
+        <circle cx="0" cy="-34" r="8" fill="#26292c" stroke="#555" stroke-width="1.2"/>
+        <circle cx="0" cy="34" r="8" fill="#26292c" stroke="#555" stroke-width="1.2"/>
+        <!-- adjustment slots -->
+        <rect x="-5" y="-12" width="10" height="24" rx="3" fill="#15171a"/>
+        <circle cx="0" cy="-6" r="3" fill="${a.accent}"/><circle cx="0" cy="6" r="3" fill="${a.accent}"/>
+      </g>
+      <!-- vertical reference + angle -->
+      <line x1="${cx+34}" y1="40" x2="${cx+34}" y2="108" stroke="#555" stroke-width="1.4" stroke-dasharray="4 3"/>
+      <path d="M ${cx+34} 50 a 18 18 0 0 0 -8 -2" fill="none" stroke="${a.accent}" stroke-width="1.6"/>
+      <text x="${cx+22}" y="46" font-family="'Barlow Condensed',sans-serif" font-size="10" fill="${a.accent}" text-anchor="middle">°</text>`;
+  },
+
+  swaybar(id,a){
+    return `
+      <!-- U-shaped bar -->
+      <path d="M 56 60 L 150 60 Q 184 60 184 92 L 184 104" fill="none" stroke="url(#hacc${id})" stroke-width="9" stroke-linecap="round"/>
+      <path d="M 56 60 L 56 100" fill="none" stroke="url(#hacc${id})" stroke-width="9" stroke-linecap="round"/>
+      <!-- end links -->
+      <circle cx="56" cy="104" r="6" fill="url(#hchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      <circle cx="184" cy="108" r="6" fill="url(#hchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      <!-- mounting bushes -->
+      <rect x="88" y="52" width="16" height="16" rx="4" fill="#15171a" stroke="${shadeH(a.accent,0.6)}" stroke-width="1.4"/>
+      <rect x="132" y="52" width="16" height="16" rx="4" fill="#15171a" stroke="${shadeH(a.accent,0.6)}" stroke-width="1.4"/>`;
+  },
+
+  airsusp(id,a){
+    const cx=118;
+    return `
+      <!-- air bag bellows -->
+      <rect x="${cx-22}" y="40" width="44" height="10" rx="3" fill="url(#hmet${id})" stroke="#4a4d50" stroke-width="1"/>
+      ${[0,1,2].map(i=>`<ellipse cx="${cx}" cy="${58+i*16}" rx="${24-i*0}" ry="9" fill="url(#hacc${id})" stroke="${shadeH(a.accent,0.5)}" stroke-width="1.2"/>`).join('')}
+      <rect x="${cx-18}" y="50" width="36" height="44" fill="url(#hacc${id})" opacity="0.55"/>
+      <rect x="${cx-22}" y="98" width="44" height="10" rx="3" fill="url(#hmet${id})" stroke="#4a4d50" stroke-width="1"/>
+      <!-- air line + fitting -->
+      <path d="M ${cx+22} 46 q 22 0 22 16" fill="none" stroke="#555" stroke-width="2.5"/>
+      <circle cx="${cx+44}" cy="64" r="4" fill="${a.accent}"/>
+      <!-- compressor hint -->
+      <rect x="${cx+34}" y="84" width="22" height="16" rx="3" fill="url(#hmet${id})" stroke="#4a4d50" stroke-width="1"/>
+      <circle cx="${cx+45}" cy="92" r="5" fill="#26292c" stroke="${a.accent}" stroke-width="1.2"/>`;
+  },
+
+  arm(id,a){
+    return `
+      <!-- A-arm / control arm -->
+      <path d="M 56 64 L 168 92 L 56 104 Z" fill="url(#hmet${id})" stroke="#4a4d50" stroke-width="1.5"/>
+      <path d="M 64 72 L 150 92 L 64 96 Z" fill="#15171a" opacity="0.4"/>
+      <!-- bushings -->
+      <circle cx="56" cy="64" r="8" fill="#15171a" stroke="${shadeH(a.accent,0.7)}" stroke-width="2"/>
+      <circle cx="56" cy="104" r="8" fill="#15171a" stroke="${shadeH(a.accent,0.7)}" stroke-width="2"/>
+      <!-- ball joint -->
+      <circle cx="172" cy="92" r="10" fill="url(#hchr${id})" stroke="#3a3d40" stroke-width="1.2"/>
+      <circle cx="172" cy="92" r="4" fill="#26292c"/>
+      <rect x="170" y="78" width="4" height="8" fill="url(#hchr${id})"/>`;
+  },
+
+  rotor(id,a){
+    const cx=118,cy=74,R=44;
+    let face='';
+    if(a.slotted){
+      face=[...Array(8)].map((_,i)=>{const ang=i/8*Math.PI*2;const x1=cx+Math.cos(ang)*22,y1=cy+Math.sin(ang)*22,x2=cx+Math.cos(ang+0.4)*(R-4),y2=cy+Math.sin(ang+0.4)*(R-4);return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#15171a" stroke-width="3"/>`;}).join('');
+    } else if(a.drilled){
+      face=[0,1,2].map((ri)=>{const rr=22+ri*7;const n=8+ri*3;return [...Array(n)].map((_,i)=>{const ang=i/n*Math.PI*2 + ri*0.3;return `<circle cx="${(cx+Math.cos(ang)*rr).toFixed(1)}" cy="${(cy+Math.sin(ang)*rr).toFixed(1)}" r="2.4" fill="#15171a"/>`;}).join('');}).join('');
+    } else {
+      // rally / vented — radial vanes
+      face=[...Array(24)].map((_,i)=>{const ang=i/24*Math.PI*2;return `<line x1="${(cx+Math.cos(ang)*20).toFixed(1)}" y1="${(cy+Math.sin(ang)*20).toFixed(1)}" x2="${(cx+Math.cos(ang)*(R-3)).toFixed(1)}" y2="${(cy+Math.sin(ang)*(R-3)).toFixed(1)}" stroke="#1a1c1e" stroke-width="1.4" opacity="0.6"/>`;}).join('');
+    }
+    // caliper hugging the top-right
+    const caliper=`<path d="M ${cx+22} ${cy-40} q 26 6 26 36 q 0 30 -26 36 l 0 -14 q 14 -6 14 -22 q 0 -16 -14 -22 Z" fill="url(#hacc${id})" stroke="${shadeH(a.accent,0.5)}" stroke-width="1.4"/>`;
+    return `
+      ${caliper}
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#hrotor${id})" stroke="#333" stroke-width="1.5"/>
+      <circle cx="${cx}" cy="${cy}" r="${R-2}" fill="none" stroke="${shadeH(a.accent,0.5)}" stroke-width="1" opacity="0.5"/>
+      ${face}
+      <circle cx="${cx}" cy="${cy}" r="19" fill="url(#hmet${id})" stroke="#4a4d50" stroke-width="1.2"/>
+      ${[...Array(5)].map((_,i)=>{const ang=i/5*Math.PI*2-Math.PI/2;return `<circle cx="${(cx+Math.cos(ang)*12).toFixed(1)}" cy="${(cy+Math.sin(ang)*12).toFixed(1)}" r="2.4" fill="#555"/>`;}).join('')}
+      <circle cx="${cx}" cy="${cy}" r="5" fill="#26292c"/>`;
+  },
+
+  bbk(id,a){
+    const cx=116,cy=74,R=48;
+    return `
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#hrotor${id})" stroke="#333" stroke-width="1.5"/>
+      ${[...Array(10)].map((_,i)=>{const ang=i/10*Math.PI*2;return `<line x1="${(cx+Math.cos(ang)*24).toFixed(1)}" y1="${(cy+Math.sin(ang)*24).toFixed(1)}" x2="${(cx+Math.cos(ang+0.35)*(R-4)).toFixed(1)}" y2="${(cy+Math.sin(ang+0.35)*(R-4)).toFixed(1)}" stroke="#15171a" stroke-width="3"/>`;}).join('')}
+      <circle cx="${cx}" cy="${cy}" r="22" fill="url(#hmet${id})" stroke="#4a4d50" stroke-width="1.2"/>
+      <circle cx="${cx}" cy="${cy}" r="6" fill="#26292c"/>
+      <!-- big 6-pot caliper -->
+      <g transform="translate(${cx+34},${cy})">
+        <rect x="-10" y="-34" width="34" height="68" rx="8" fill="url(#hacc${id})" stroke="${shadeH(a.accent,0.45)}" stroke-width="1.6"/>
+        ${[-22,-7,8,22].map(yy=>`<circle cx="6" cy="${yy}" r="5" fill="${shadeH(a.accent,0.6)}" stroke="${shadeH(a.accent,1.2)}" stroke-width="1"/>`).join('')}
+        <text x="7" y="0" font-family="'Barlow Condensed',sans-serif" font-size="8" font-weight="700" fill="#fff" text-anchor="middle" opacity="0" >6</text>
+      </g>`;
+  },
+
+  caliper(id,a){
+    const cx=120,cy=76,pots=a.pots||4;
+    const ys = pots===4? [-18,-6,6,18] : [-12,12];
+    return `
+      <!-- rotor edge behind -->
+      <path d="M 70 ${cy-40} a 50 50 0 0 0 0 80" fill="none" stroke="#3a3d40" stroke-width="10" opacity="0.5"/>
+      <path d="M 70 ${cy-40} a 50 50 0 0 0 0 80" fill="none" stroke="#555" stroke-width="2" opacity="0.5"/>
+      <!-- caliper body -->
+      <g transform="translate(${cx},${cy})">
+        <rect x="-18" y="-40" width="48" height="80" rx="10" fill="url(#hacc${id})" stroke="${shadeH(a.accent,0.45)}" stroke-width="1.8"/>
+        <rect x="-18" y="-6" width="48" height="12" fill="${shadeH(a.accent,0.7)}" opacity="0.5"/>
+        ${ys.map(yy=>`<circle cx="6" cy="${yy}" r="6" fill="${shadeH(a.accent,0.6)}" stroke="${shadeH(a.accent,1.2)}" stroke-width="1.2"/><circle cx="4" cy="${yy-2}" r="1.6" fill="#fff" opacity="0.4"/>`).join('')}
+        <text x="6" y="4" font-family="'Barlow Condensed',sans-serif" font-size="11" font-weight="900" fill="#fff" text-anchor="middle" opacity="0.85">${pots}</text>
+      </g>
+      <!-- brake line -->
+      <path d="M ${cx+30} ${cy-30} q 14 -2 16 -16" fill="none" stroke="#555" stroke-width="2.5"/>`;
+  },
+
+  pad(id,a){
+    const pad=(x,y,worn)=>`
+      <rect x="${x}" y="${y}" width="40" height="11" rx="2" fill="url(#hmet${id})" stroke="#4a4d50" stroke-width="1"/>
+      <rect x="${x}" y="${y-8}" width="40" height="8" rx="2" fill="url(#hacc${id})" stroke="${shadeH(a.accent,0.5)}" stroke-width="1"/>
+      <!-- backing tabs -->
+      <rect x="${x-4}" y="${y+1}" width="6" height="9" rx="1" fill="${shadeH(a.accent,0.6)}"/>
+      <rect x="${x+38}" y="${y+1}" width="6" height="9" rx="1" fill="${shadeH(a.accent,0.6)}"/>`;
+    const wear = a.ceramic ? `<circle cx="170" cy="60" r="3" fill="${a.accent}"/><path d="M 170 60 m -6 0 a 6 6 0 1 0 12 0" fill="none" stroke="${a.accent}" stroke-width="1.4"/>` : '';
+    return `
+      ${pad(78,64)} ${pad(78,92)}
+      <!-- friction texture -->
+      ${[84,94,104,114].map(x=>`<line x1="${x}" y1="58" x2="${x}" y2="64" stroke="${shadeH(a.accent,0.8)}" stroke-width="1"/>`).join('')}
+      ${wear}
+      <text x="150" y="98" font-family="'Barlow Condensed',sans-serif" font-size="9" fill="${a.accent}" opacity="0.7">${a.ceramic?'CERAMIC':'PAD'}</text>`;
+  },
+
+  ducts(id,a){
+    return `
+      <!-- rotor edge -->
+      <path d="M 150 40 a 44 44 0 1 0 0 72" fill="none" stroke="#3a3d40" stroke-width="8"/>
+      <path d="M 150 40 a 44 44 0 1 0 0 72" fill="none" stroke="#555" stroke-width="1.5" opacity="0.6"/>
+      <!-- ducting hose -->
+      <path d="M 40 100 q 0 -40 40 -48 q 30 -6 50 -8" fill="none" stroke="url(#hacc${id})" stroke-width="14" stroke-linecap="round" opacity="0.9"/>
+      ${[...Array(7)].map((_,i)=>`<path d="M ${44+i*12} ${100-i*0} q 0 -38 ${38-i*2} -46" fill="none" stroke="${shadeH(a.accent,0.5)}" stroke-width="1.4" opacity="0.5"/>`).join('')}
+      <!-- intake scoop mouth -->
+      <ellipse cx="40" cy="102" rx="7" ry="13" fill="#15171a" stroke="${shadeH(a.accent,0.6)}" stroke-width="1.4"/>
+      <!-- airflow arrows -->
+      <path d="M 22 102 L 34 102 M 30 98 L 36 102 L 30 106" stroke="${a.accent}" stroke-width="2" fill="none"/>`;
+  },
+
+  fluid(id,a){
+    return `
+      <!-- bottle -->
+      <path d="M 100 50 L 140 50 L 144 104 Q 144 110 138 110 L 102 110 Q 96 110 96 104 Z" fill="url(#hacc${id})" stroke="${shadeH(a.accent,0.5)}" stroke-width="1.5"/>
+      <rect x="108" y="40" width="24" height="12" rx="2" fill="url(#hchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      <!-- label -->
+      <rect x="100" y="66" width="40" height="30" rx="2" fill="#15171a" opacity="0.85"/>
+      <text x="120" y="80" font-family="'Barlow Condensed',sans-serif" font-size="10" font-weight="700" fill="${a.accent}" text-anchor="middle">DOT</text>
+      <text x="120" y="92" font-family="'Barlow Condensed',sans-serif" font-size="13" font-weight="900" fill="#fff" text-anchor="middle">5.1</text>
+      <!-- droplet -->
+      <path d="M 160 70 q 6 8 0 14 q -6 -6 0 -14 Z" fill="${a.accent}"/>`;
+  },
+
+  absdelete(id,a){
+    return `
+      <!-- ABS pump module greyed -->
+      <rect x="78" y="54" width="56" height="44" rx="5" fill="url(#hmet${id})" stroke="#4a4d50" stroke-width="1.4" opacity="0.7"/>
+      ${[0,1,2].map(i=>`<circle cx="${90+i*16}" cy="68" r="5" fill="#26292c" stroke="#555" stroke-width="1"/>`).join('')}
+      <rect x="86" y="82" width="40" height="10" rx="2" fill="#15171a"/>
+      <!-- big red NO slash -->
+      <circle cx="106" cy="76" r="40" fill="none" stroke="${a.accent}" stroke-width="5" opacity="0.9"/>
+      <line x1="80" y1="50" x2="132" y2="102" stroke="${a.accent}" stroke-width="5" opacity="0.9"/>
+      <!-- direct line -->
+      <path d="M 140 76 L 178 76" stroke="${shadeH(a.accent,0.7)}" stroke-width="3" stroke-dasharray="5 3"/>
+      <circle cx="182" cy="76" r="5" fill="url(#hchr${id})" stroke="#3a3d40" stroke-width="1"/>`;
+  },
+};
+
+function hBadge(art){
+  const t=art.badge||''; if(!t) return '';
+  const w=t.length*6.2+12;
+  return `<g transform="translate(8,132)">
+    <rect x="0" y="0" width="${w}" height="15" rx="7.5" fill="#0008" stroke="${art.accent}" stroke-width="1"/>
+    <text x="${w/2}" y="11" font-family="'Barlow Condensed',sans-serif" font-size="10" font-weight="700" fill="${art.accent}" text-anchor="middle" letter-spacing="0.5">${t}</text>
+  </g>`;
+}
+
+function handlingSVG(id){
+  const art=HANDLING_ART[id]; if(!art) return '';
+  const drawer=HPART[art.type]||HPART.tyre;
+  return `<svg viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">
+    ${hDefs(id, art.accent)}
+    <rect x="0" y="0" width="240" height="150" fill="url(#hglow${id})"/>
+    ${drawer(id,art)}
+    ${hBadge(art)}
+  </svg>`;
+}
+
+// ── COSMETIC ART (parametric SVG) ───────────────────────────────────────────
+// ── PARAMETRIC SVG COSMETIC-PART ILLUSTRATOR ────────────────────────────────
+// Visual/style mods. viewBox 0 0 240 150. Matches the rest of the set.
+
+function shadeK(hex, f){
+  const n=parseInt(hex.slice(1),16);
+  let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  r=Math.min(255,Math.round(r*f));g=Math.min(255,Math.round(g*f));b=Math.min(255,Math.round(b*f));
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+
+const COSMETIC_ART = {
+  601:{type:'underglow', accent:'#9b59b6', badge:'ILLEGAL', illegal:true},
+  602:{type:'wheel_acc', accent:'#e74c3c', badge:'ILLEGAL', illegal:true, kind:'steering'},
+  603:{type:'rim',       accent:'#f1c40f', badge:'STYLE',   kind:'deepdish'},
+  604:{type:'tint',      accent:'#3498db', badge:'STYLE'},
+  605:{type:'dice',      accent:'#e74c3c', badge:'RETRO'},
+  606:{type:'headlight', accent:'#3498db', badge:'ILLEGAL', illegal:true},
+  607:{type:'taillight', accent:'#e74c3c', badge:'STYLE',   kind:'led'},
+  608:{type:'bodykit',   accent:'#D85A30', badge:'ILLEGAL', illegal:true},
+  609:{type:'wrap',      accent:'#1abc9c', badge:'ILLEGAL', illegal:true, chameleon:true},
+  610:{type:'horn',      accent:'#f39c12', badge:'ILLEGAL', illegal:true},
+  611:{type:'towhook',   accent:'#e67e22', badge:'STYLE'},
+  612:{type:'stretch',   accent:'#e74c3c', badge:'ILLEGAL', illegal:true},
+  613:{type:'roofbox',   accent:'#3498db', badge:'STYLE'},
+  614:{type:'spoiler',   accent:'#D85A30', badge:'STYLE',   kind:'ducktail'},
+  615:{type:'bonnet',    accent:'#5d6d7e', badge:'CARBON'},
+  616:{type:'intercoolershow',accent:'#e74c3c',badge:'ILLEGAL', illegal:true},
+  617:{type:'decals',    accent:'#e84393', badge:'STYLE'},
+  618:{type:'rollcage',  accent:'#e74c3c', badge:'ILLEGAL', illegal:true},
+  619:{type:'livery',    accent:'#3498db', badge:'STYLE'},
+  620:{type:'roofrack_sb',accent:'#16a085', badge:'STYLE'},
+  621:{type:'gauge',     accent:'#f1c40f', badge:'STYLE'},
+  622:{type:'starlight', accent:'#9b59b6', badge:'LUXURY'},
+  623:{type:'banner',    accent:'#e67e22', badge:'SCENE'},
+  624:{type:'mirror',    accent:'#3498db', badge:'STYLE'},
+  625:{type:'sidexhaust',accent:'#e74c3c', badge:'ILLEGAL', illegal:true},
+  626:{type:'plateframe',accent:'#2ecc71', badge:'STYLE'},
+  627:{type:'shaved',    accent:'#95a5a6', badge:'STYLE'},
+  628:{type:'scoop',     accent:'#e67e22', badge:'STYLE'},
+  629:{type:'airctrl',   accent:'#9b59b6', badge:'ILLEGAL', illegal:true},
+  630:{type:'tintlight', accent:'#5d6d7e', badge:'ILLEGAL', illegal:true},
+};
+
+function kDefs(id, accent){
+  const a2=shadeK(accent,0.5);
+  return `<defs>
+    <linearGradient id="kmet${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#43474b"/><stop offset="0.5" stop-color="#2b2e31"/><stop offset="1" stop-color="#191b1d"/>
+    </linearGradient>
+    <linearGradient id="kacc${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${accent}"/><stop offset="1" stop-color="${a2}"/>
+    </linearGradient>
+    <linearGradient id="kchr${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8e8e8"/><stop offset="0.5" stop-color="#9aa0a6"/><stop offset="1" stop-color="#6b7075"/>
+    </linearGradient>
+    <radialGradient id="kglow${id}" cx="0.5" cy="0.45" r="0.62">
+      <stop offset="0" stop-color="${accent}" stop-opacity="0.22"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="kcham${id}" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1abc9c"/><stop offset="0.4" stop-color="#9b59b6"/><stop offset="0.7" stop-color="#3498db"/><stop offset="1" stop-color="#f1c40f"/>
+    </linearGradient>
+    <linearGradient id="ktint${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a6a75"/><stop offset="1" stop-color="#10171c"/>
+    </linearGradient>
+  </defs>`;
+}
+
+// small generic car-body outline used by several mods
+function miniBody(id, accent, fill){
+  return `<path d="M 44 100 L 58 84 C 78 72 110 68 140 72 C 160 74 176 82 188 94 L 200 98 L 200 104 L 44 104 Z" fill="${fill||`url(#kmet${id})`}" stroke="${shadeK(accent,0.6)}" stroke-width="1.2"/>
+    <path d="M 80 82 C 96 74 120 72 142 75 L 168 84 L 96 82 Z" fill="#2a3640" opacity="0.8"/>`;
+}
+
+const KPART = {
+  underglow(id,a){
+    return `${miniBody(id,a.accent)}
+      <ellipse cx="122" cy="116" rx="78" ry="12" fill="${a.accent}" opacity="0.45"/>
+      <ellipse cx="122" cy="114" rx="60" ry="7" fill="${shadeK(a.accent,1.3)}" opacity="0.6"/>
+      ${[60,90,120,150,180].map(x=>`<line x1="${x}" y1="104" x2="${x}" y2="120" stroke="${a.accent}" stroke-width="2" opacity="0.5"/>`).join('')}`;
+  },
+
+  wheel_acc(id,a){ // custom steering wheel
+    const cx=120,cy=74;
+    return `
+      <circle cx="${cx}" cy="${cy}" r="42" fill="none" stroke="url(#kacc${id})" stroke-width="11"/>
+      <circle cx="${cx}" cy="${cy}" r="42" fill="none" stroke="${shadeK(a.accent,1.2)}" stroke-width="2" opacity="0.5"/>
+      <circle cx="${cx}" cy="${cy}" r="13" fill="url(#kmet${id})" stroke="#4a4d50" stroke-width="1.4"/>
+      <circle cx="${cx}" cy="${cy}" r="5" fill="${a.accent}"/>
+      <!-- 3 spokes -->
+      ${[90,210,330].map(deg=>{const r=deg*Math.PI/180;return `<rect x="${cx-4}" y="${cy-2}" width="30" height="7" rx="3" fill="url(#kmet${id})" stroke="#4a4d50" stroke-width="0.8" transform="rotate(${deg} ${cx} ${cy})"/>`;}).join('')}
+      <!-- stitching -->
+      <circle cx="${cx}" cy="${cy}" r="36" fill="none" stroke="${shadeK(a.accent,1.3)}" stroke-width="1" stroke-dasharray="3 3" opacity="0.7"/>`;
+  },
+
+  rim(id,a){ // deep dish
+    const cx=120,cy=74,R=46;
+    return `
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="#0d0e10" stroke="#000" stroke-width="1.5"/>
+      <circle cx="${cx}" cy="${cy}" r="${R-4}" fill="url(#kchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      <circle cx="${cx}" cy="${cy}" r="${R-12}" fill="url(#kmet${id})" stroke="#555" stroke-width="1"/>
+      <circle cx="${cx}" cy="${cy}" r="${R-14}" fill="none" stroke="url(#kacc${id})" stroke-width="2.5"/>
+      <!-- spokes -->
+      ${[...Array(8)].map((_,i)=>{const ang=i/8*Math.PI*2;return `<rect x="${cx-3}" y="${cy-(R-14)}" width="6" height="${R-20}" rx="2" fill="url(#kacc${id})" transform="rotate(${i*45} ${cx} ${cy})"/>`;}).join('')}
+      <circle cx="${cx}" cy="${cy}" r="9" fill="url(#kchr${id})" stroke="#3a3d40" stroke-width="1"/>
+      <circle cx="${cx}" cy="${cy}" r="3" fill="${a.accent}"/>
+      <!-- dish highlight -->
+      <path d="M ${cx-R+6} ${cy} a ${R-6} ${R-6} 0 0 1 ${R-6} ${-(R-6)}" fill="none" stroke="#fff" stroke-width="2" opacity="0.25"/>`;
+  },
+
+  tint(id,a){ // tinted side glass
+    return `${miniBody(id,a.accent)}
+      <path d="M 80 82 C 96 74 120 72 142 75 L 168 84 L 96 82 Z" fill="url(#ktint${id})" stroke="${a.accent}" stroke-width="1.2" opacity="0.95"/>
+      <path d="M 88 80 L 120 76 L 116 80 Z" fill="#fff" opacity="0.12"/>
+      <text x="150" y="64" font-family="'Barlow Condensed',sans-serif" font-size="10" fill="${a.accent}" text-anchor="middle" opacity="0.8">35%</text>`;
+  },
+
+  dice(id,a){
+    const die=(x,y,rot)=>`<g transform="translate(${x},${y}) rotate(${rot})">
+      <rect x="-15" y="-15" width="30" height="30" rx="6" fill="${a.accent}" stroke="${shadeK(a.accent,0.6)}" stroke-width="1.4"/>
+      <rect x="-15" y="-15" width="30" height="14" rx="6" fill="#fff" opacity="0.15"/>
+      ${[[-7,-7],[7,-7],[-7,7],[7,7],[0,0]].map(([dx,dy])=>`<circle cx="${dx}" cy="${dy}" r="3" fill="#fff"/>`).join('')}
+    </g>`;
+    return `
+      <!-- mirror mount -->
+      <path d="M 120 30 L 108 64 M 120 30 L 132 64" stroke="url(#kchr${id})" stroke-width="2.5" fill="none"/>
+      <circle cx="120" cy="28" r="4" fill="#26292c"/>
+      ${die(104,76,-12)} ${die(140,84,10)}`;
+  },
+
+  headlight(id,a){
+    const lamp=(x)=>`
+      <path d="M ${x} 56 q 26 4 26 20 q 0 16 -26 20 Z" fill="url(#kchr${id})" stroke="#3a3d40" stroke-width="1.2"/>
+      <ellipse cx="${x+10}" cy="76" rx="7" ry="13" fill="${shadeK(a.accent,1.2)}" opacity="0.85"/>
+      <ellipse cx="${x+10}" cy="76" rx="3" ry="7" fill="#fff" opacity="0.7"/>
+      <!-- projector rings -->
+      <circle cx="${x+9}" cy="68" r="4" fill="none" stroke="${a.accent}" stroke-width="1.4"/>
+      <!-- beams -->
+      ${[68,76,84].map(y=>`<line x1="${x+24}" y1="${y}" x2="${x+54}" y2="${y+(y-76)*0.5}" stroke="${a.accent}" stroke-width="1.6" opacity="0.5"/>`).join('')}`;
+    return lamp(72);
+  },
+
+  taillight(id,a){
+    return `
+      <rect x="74" y="58" width="92" height="34" rx="8" fill="#15171a" stroke="${shadeK(a.accent,0.6)}" stroke-width="1.4"/>
+      ${[...Array(5)].map((_,c)=>[...Array(3)].map((_,r)=>`<circle cx="${88+c*18}" cy="${68+r*9}" r="3" fill="${a.accent}"/>`).join('')).join('')}
+      <rect x="74" y="58" width="92" height="12" rx="8" fill="#fff" opacity="0.08"/>`;
+  },
+
+  bodykit(id,a){
+    return `${miniBody(id,a.accent)}
+      <!-- wide arches -->
+      <path d="M 50 104 q 4 -16 22 -16 q 18 0 22 16" fill="none" stroke="url(#kacc${id})" stroke-width="5"/>
+      <path d="M 150 104 q 4 -16 22 -16 q 18 0 22 16" fill="none" stroke="url(#kacc${id})" stroke-width="5"/>
+      <!-- front lip + side skirt -->
+      <path d="M 44 102 L 40 108 L 70 108 L 70 104 Z" fill="url(#kacc${id})"/>
+      <path d="M 96 104 L 150 104 L 150 109 L 96 109 Z" fill="${shadeK(a.accent,0.7)}"/>`;
+  },
+
+  wrap(id,a){
+    return `${miniBody(id,a.accent,`url(#kcham${id})`)}
+      <path d="M 58 88 L 188 80" stroke="#fff" stroke-width="2" opacity="0.3"/>
+      ${[60,100,140,180].map(x=>`<rect x="${x}" y="74" width="6" height="28" fill="#fff" opacity="0.08"/>`).join('')}
+      <text x="122" y="120" font-family="'Barlow Condensed',sans-serif" font-size="9" fill="${a.accent}" text-anchor="middle" opacity="0.9" letter-spacing="1">CHAMELEON</text>`;
+  },
+
+  horn(id,a){
+    const trumpet=(x,y,s)=>`<g transform="translate(${x},${y}) scale(${s})"><path d="M 0 -8 L 0 8 L 30 18 L 30 -18 Z" fill="url(#kchr${id})" stroke="#3a3d40" stroke-width="1.2"/><ellipse cx="30" cy="0" rx="4" ry="18" fill="${shadeK(a.accent,1.1)}"/><circle cx="2" cy="0" r="5" fill="url(#kmet${id})"/></g>`;
+    return `
+      ${trumpet(70,62,0.8)} ${trumpet(70,90,1)}
+      <rect x="58" y="56" width="10" height="40" rx="3" fill="url(#kmet${id})" stroke="#4a4d50" stroke-width="1"/>
+      <!-- sound waves -->
+      ${[1,2,3].map(i=>`<path d="M ${150+i*8} ${60} q 10 16 0 32" fill="none" stroke="${a.accent}" stroke-width="2" opacity="${0.7-i*0.15}"/>`).join('')}
+      <path d="M 134 70 l 8 -3 l -2 6 Z" fill="${a.accent}"/>`;
+  },
+
+  towhook(id,a){
+    return `
+      <!-- bumper edge -->
+      <rect x="60" y="92" width="120" height="14" rx="4" fill="url(#kmet${id})" stroke="#4a4d50" stroke-width="1.2"/>
+      <!-- hook -->
+      <path d="M 116 60 L 124 60 L 124 86 Q 124 100 110 100 Q 100 100 100 90 L 108 90 Q 108 92 110 92 Q 116 92 116 84 Z" fill="url(#kacc${id})" stroke="${shadeK(a.accent,0.5)}" stroke-width="1.4"/>
+      <ellipse cx="120" cy="58" rx="9" ry="5" fill="url(#kchr${id})" stroke="#3a3d40" stroke-width="1"/>`;
+  },
+
+  stretch(id,a){
+    const cx=120,cy=74,R=46;
+    return `
+      <!-- tyre stretched over wide rim -->
+      <path d="M ${cx-R} ${cy} a ${R} ${R} 0 0 1 ${R*2} 0 l -8 0 a ${R-8} ${R-8} 0 0 0 ${-(R*2-16)} 0 Z" fill="#0d0e10"/>
+      <path d="M ${cx-R} ${cy} a ${R} ${R} 0 0 0 ${R*2} 0 l -6 0 a ${R-6} ${R-6} 0 0 1 ${-(R*2-12)} 0 Z" fill="#0d0e10"/>
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${shadeK(a.accent,0.7)}" stroke-width="1" opacity="0.5"/>
+      <circle cx="${cx}" cy="${cy}" r="${R-7}" fill="url(#kchr${id})" stroke="#3a3d40" stroke-width="1.5"/>
+      <circle cx="${cx}" cy="${cy}" r="${R-9}" fill="url(#kmet${id})"/>
+      ${[...Array(10)].map((_,i)=>`<rect x="${cx-2}" y="${cy-(R-9)}" width="4" height="${R-16}" fill="url(#kacc${id})" transform="rotate(${i*36} ${cx} ${cy})"/>`).join('')}
+      <circle cx="${cx}" cy="${cy}" r="7" fill="url(#kchr${id})"/>
+      <!-- poke arrows -->
+      <path d="M ${cx-R-12} ${cy} l 8 -4 l 0 8 Z" fill="${a.accent}"/>
+      <path d="M ${cx+R+12} ${cy} l -8 -4 l 0 8 Z" fill="${a.accent}"/>`;
+  },
+
+  roofbox(id,a){
+    return `${miniBody(id,a.accent)}
+      <path d="M 86 72 Q 88 60 104 60 L 150 60 Q 162 60 164 70 L 158 72 Z" fill="url(#kacc${id})" stroke="${shadeK(a.accent,0.5)}" stroke-width="1.2"/>
+      <rect x="92" y="64" width="60" height="3" fill="#fff" opacity="0.2"/>
+      <!-- rails -->
+      <rect x="82" y="72" width="86" height="3" fill="#15171a"/>`;
+  },
+
+  spoiler(id,a){ // ducktail
+    return `${miniBody(id,a.accent)}
+      <path d="M 168 84 Q 188 80 198 70 L 200 76 Q 190 86 176 90 Z" fill="url(#kacc${id})" stroke="${shadeK(a.accent,0.5)}" stroke-width="1.2"/>`;
+  },
+
+  bonnet(id,a){
+    // carbon weave panel
+    const weave=[...Array(8)].flatMap((_,r)=>[...Array(10)].map((_,c)=>`<rect x="${66+c*11+(r%2?5:0)}" y="${52+r*6}" width="5" height="5" fill="${(r+c)%2?'#1a1c1e':'#34373a'}"/>`)).join('');
+    return `
+      <rect x="62" y="48" width="116" height="56" rx="6" fill="#222426" stroke="${shadeK(a.accent,0.7)}" stroke-width="1.4"/>
+      <clipPath id="bclip${id}"><rect x="64" y="50" width="112" height="52" rx="5"/></clipPath>
+      <g clip-path="url(#bclip${id})">${weave}<rect x="62" y="48" width="60" height="56" fill="#fff" opacity="0.06"/></g>
+      <!-- pins -->
+      <circle cx="74" cy="58" r="3" fill="${a.accent}"/><circle cx="166" cy="58" r="3" fill="${a.accent}"/>`;
+  },
+
+  intercoolershow(id,a){
+    return `${miniBody(id,a.accent)}
+      <!-- FMIC poking through bumper -->
+      <rect x="92" y="92" width="56" height="16" rx="2" fill="url(#kmet${id})" stroke="${a.accent}" stroke-width="1.4"/>
+      ${[...Array(7)].map((_,i)=>`<line x1="${98+i*8}" y1="93" x2="${98+i*8}" y2="107" stroke="#15171a" stroke-width="2"/>`).join('')}
+      <rect x="88" y="90" width="6" height="20" rx="2" fill="${shadeK(a.accent,0.7)}"/>
+      <rect x="146" y="90" width="6" height="20" rx="2" fill="${shadeK(a.accent,0.7)}"/>`;
+  },
+
+  decals(id,a){ // anime/character decal
+    return `${miniBody(id,a.accent)}
+      <!-- decal panel on door -->
+      <rect x="96" y="78" width="44" height="22" rx="3" fill="#15171a" opacity="0.6"/>
+      <!-- stylised character: face + hair -->
+      <circle cx="112" cy="88" r="9" fill="#ffe0c0"/>
+      <path d="M 103 86 Q 104 76 112 76 Q 120 76 121 86 L 118 84 L 112 82 L 106 84 Z" fill="${a.accent}"/>
+      <circle cx="109" cy="88" r="1.6" fill="#222"/><circle cx="115" cy="88" r="1.6" fill="#222"/>
+      <path d="M 126 80 Q 136 84 134 96" fill="none" stroke="${a.accent}" stroke-width="2"/>
+      <text x="130" y="98" font-family="'Barlow Condensed',sans-serif" font-size="8" fill="${a.accent}">★</text>`;
+  },
+
+  rollcage(id,a){
+    return `${miniBody(id,a.accent,'#222426')}
+      <!-- cage bars through cabin -->
+      <path d="M 92 82 L 88 60 L 150 60 L 156 84" fill="none" stroke="url(#kacc${id})" stroke-width="3.5"/>
+      <path d="M 100 81 L 100 62 M 130 60 L 132 82" stroke="url(#kacc${id})" stroke-width="3"/>
+      <path d="M 88 60 L 132 82 M 150 60 L 100 81" stroke="${shadeK(a.accent,0.7)}" stroke-width="2" opacity="0.7"/>
+      <!-- weld dots -->
+      ${[[88,60],[150,60],[100,81],[132,82]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="2.4" fill="${shadeK(a.accent,1.2)}"/>`).join('')}`;
+  },
+
+  livery(id,a){
+    return `${miniBody(id,a.accent)}
+      <!-- racing stripes + number roundel -->
+      <path d="M 58 96 L 188 88" stroke="${a.accent}" stroke-width="6" opacity="0.9"/>
+      <path d="M 58 90 L 188 82" stroke="#fff" stroke-width="2.5" opacity="0.6"/>
+      <circle cx="120" cy="82" r="12" fill="#fff" opacity="0.9"/>
+      <text x="120" y="87" font-family="'Barlow Condensed',sans-serif" font-size="14" font-weight="900" fill="${shadeK(a.accent,0.7)}" text-anchor="middle">7</text>
+      <!-- sponsor blocks -->
+      <rect x="70" y="92" width="14" height="6" fill="${a.accent}"/><rect x="160" y="86" width="14" height="6" fill="${shadeK(a.accent,1.2)}"/>`;
+  },
+
+  roofrack_sb(id,a){ // roof rack with skateboards
+    return `${miniBody(id,a.accent)}
+      <rect x="82" y="70" width="86" height="3" fill="#15171a"/>
+      <rect x="86" y="65" width="3" height="6" fill="#15171a"/><rect x="160" y="65" width="3" height="6" fill="#15171a"/>
+      <!-- skateboards stacked -->
+      <rect x="84" y="58" width="80" height="6" rx="3" fill="url(#kacc${id})"/>
+      <rect x="88" y="52" width="74" height="6" rx="3" fill="${shadeK(a.accent,1.2)}"/>
+      ${[92,158].map(x=>`<circle cx="${x}" cy="65" r="2.4" fill="#f1c40f"/>`).join('')}`;
+  },
+
+  gauge(id,a){ // boost gauge pod
+    const cx=120,cy=74;
+    return `
+      <circle cx="${cx}" cy="${cy}" r="40" fill="url(#kmet${id})" stroke="#4a4d50" stroke-width="2"/>
+      <circle cx="${cx}" cy="${cy}" r="34" fill="#0d0e10" stroke="${shadeK(a.accent,0.6)}" stroke-width="1"/>
+      ${[...Array(11)].map((_,i)=>{const ang=(-220 + i*26)*Math.PI/180;return `<line x1="${(cx+Math.cos(ang)*30).toFixed(1)}" y1="${(cy+Math.sin(ang)*30).toFixed(1)}" x2="${(cx+Math.cos(ang)*24).toFixed(1)}" y2="${(cy+Math.sin(ang)*24).toFixed(1)}" stroke="${i>7?a.accent:'#888'}" stroke-width="2"/>`;}).join('')}
+      <!-- needle -->
+      <line x1="${cx}" y1="${cy}" x2="${(cx+Math.cos(-40*Math.PI/180)*26).toFixed(1)}" y2="${(cy+Math.sin(-40*Math.PI/180)*26).toFixed(1)}" stroke="${a.accent}" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="${cx}" cy="${cy}" r="5" fill="${a.accent}"/>
+      <text x="${cx}" y="${cy+20}" font-family="'Barlow Condensed',sans-serif" font-size="8" fill="#888" text-anchor="middle">BOOST</text>`;
+  },
+
+  starlight(id,a){
+    return `
+      <!-- headliner panel arc -->
+      <path d="M 50 100 Q 120 40 190 100 Z" fill="#0a0a16" stroke="${shadeK(a.accent,0.7)}" stroke-width="1.4"/>
+      <clipPath id="sclip${id}"><path d="M 50 100 Q 120 40 190 100 Z"/></clipPath>
+      <g clip-path="url(#sclip${id})">
+        ${[...Array(60)].map(()=>{const x=44+Math.random()*152;const y=52+Math.random()*46;const r=Math.random()*1.4+0.4;return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="#fff" opacity="${(0.4+Math.random()*0.6).toFixed(2)}"/>`;}).join('')}
+        ${[...Array(8)].map(()=>{const x=50+Math.random()*140;const y=56+Math.random()*40;return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.6" fill="${a.accent}"/>`;}).join('')}
+      </g>`;
+  },
+
+  banner(id,a){ // windscreen sun strip / stance banner
+    return `${miniBody(id,a.accent)}
+      <path d="M 82 76 L 150 70 L 150 75 L 84 81 Z" fill="url(#kacc${id})"/>
+      <text x="116" y="80" font-family="'Barlow Condensed',sans-serif" font-size="9" font-weight="700" fill="#fff" text-anchor="middle" opacity="0.85" letter-spacing="1">STANCE</text>`;
+  },
+
+  mirror(id,a){
+    const m=(x,rot)=>`<g transform="translate(${x},74) rotate(${rot})">
+      <rect x="-6" y="-2" width="14" height="6" rx="2" fill="url(#kmet${id})"/>
+      <path d="M 8 -14 Q 26 -14 26 0 Q 26 14 8 14 Z" fill="url(#kchr${id})" stroke="#3a3d40" stroke-width="1.2"/>
+      <path d="M 11 -10 Q 22 -10 22 0 Q 22 10 11 10 Z" fill="${shadeK(a.accent,1.1)}" opacity="0.7"/>
+    </g>`;
+    return `${m(70,0)} ${m(150,0)}
+      <text x="120" y="116" font-family="'Barlow Condensed',sans-serif" font-size="9" fill="${a.accent}" text-anchor="middle" opacity="0.7">WIDE VIEW</text>`;
+  },
+
+  sidexhaust(id,a){
+    return `${miniBody(id,a.accent)}
+      <!-- side-exit pipes under door -->
+      ${[0,1].map(i=>`<rect x="${118+i*18}" y="100" width="30" height="9" rx="4" fill="url(#kchr${id})" stroke="#3a3d40" stroke-width="1"/><ellipse cx="${148+i*18}" cy="104" rx="3" ry="4" fill="#15171a"/>`).join('')}
+      <!-- heat haze -->
+      ${[1,2].map(i=>`<path d="M ${172+i*6} 100 q 6 -8 0 -16" fill="none" stroke="${a.accent}" stroke-width="1.6" opacity="${0.6-i*0.2}"/>`).join('')}`;
+  },
+
+  plateframe(id,a){
+    return `
+      <rect x="74" y="60" width="92" height="40" rx="4" fill="url(#kmet${id})" stroke="#4a4d50" stroke-width="1.4"/>
+      <rect x="82" y="68" width="76" height="24" rx="2" fill="#dfe6e9"/>
+      <text x="120" y="86" font-family="'Barlow Condensed',sans-serif" font-size="15" font-weight="900" fill="#2c3e50" text-anchor="middle" letter-spacing="2">HBT-01</text>
+      <!-- glow frame -->
+      <rect x="74" y="60" width="92" height="40" rx="4" fill="none" stroke="${a.accent}" stroke-width="2" opacity="0.7"/>
+      ${[80,120,160].map(x=>`<circle cx="${x}" cy="103" r="2" fill="${a.accent}"/>`).join('')}`;
+  },
+
+  shaved(id,a){
+    return `${miniBody(id,a.accent)}
+      <!-- smooth door, no handle, marker where it was -->
+      <path d="M 100 88 L 140 86" stroke="${shadeK(a.accent,0.7)}" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>
+      <circle cx="148" cy="88" r="9" fill="none" stroke="${a.accent}" stroke-width="1.6" stroke-dasharray="3 3"/>
+      <line x1="142" y1="82" x2="154" y2="94" stroke="${a.accent}" stroke-width="1.6"/>
+      <text x="120" y="118" font-family="'Barlow Condensed',sans-serif" font-size="9" fill="${a.accent}" text-anchor="middle" opacity="0.7">SMOOTH</text>`;
+  },
+
+  scoop(id,a){ // fake hood scoop
+    return `
+      <!-- bonnet surface -->
+      <path d="M 50 104 L 64 80 L 176 80 L 190 104 Z" fill="url(#kmet${id})" stroke="#4a4d50" stroke-width="1.2"/>
+      <!-- scoop -->
+      <path d="M 96 80 L 100 60 L 140 60 L 144 80 Z" fill="url(#kacc${id})" stroke="${shadeK(a.accent,0.5)}" stroke-width="1.4"/>
+      <rect x="104" y="62" width="32" height="7" rx="2" fill="#15171a"/>
+      <path d="M 96 80 L 144 80" stroke="${shadeK(a.accent,0.7)}" stroke-width="1.5"/>`;
+  },
+
+  airctrl(id,a){ // air ride controller display
+    return `
+      <rect x="80" y="52" width="80" height="50" rx="8" fill="url(#kmet${id})" stroke="#4a4d50" stroke-width="1.5"/>
+      <rect x="88" y="60" width="64" height="26" rx="3" fill="#0a1018" stroke="${shadeK(a.accent,0.6)}" stroke-width="1"/>
+      <!-- 4 corner pressures -->
+      ${[[100,68],[140,68],[100,80],[140,80]].map(([x,y],i)=>`<text x="${x}" y="${y}" font-family="'Barlow Condensed',monospace" font-size="10" font-weight="700" fill="${a.accent}" text-anchor="middle">${[32,30,28,31][i]}</text>`).join('')}
+      <rect x="88" y="92" width="64" height="6" rx="3" fill="${shadeK(a.accent,0.5)}"/>
+      ${[96,110,124,138].map(x=>`<circle cx="${x}" cy="95" r="2" fill="${a.accent}"/>`).join('')}`;
+  },
+
+  tintlight(id,a){ // tinted headlights
+    return `
+      <path d="M 80 56 q 30 4 30 20 q 0 16 -30 20 Z" fill="url(#ktint${id})" stroke="${a.accent}" stroke-width="1.4"/>
+      <ellipse cx="92" cy="76" rx="6" ry="11" fill="#1a2733" opacity="0.9"/>
+      <ellipse cx="92" cy="76" rx="2.5" ry="6" fill="${a.accent}" opacity="0.4"/>
+      <!-- weak beam through tint -->
+      ${[70,76,82].map(y=>`<line x1="112" y1="${y}" x2="134" y2="${y}" stroke="${a.accent}" stroke-width="1.4" opacity="0.25"/>`).join('')}
+      <text x="150" y="100" font-family="'Barlow Condensed',sans-serif" font-size="9" fill="${a.accent}" text-anchor="middle" opacity="0.7">DARK</text>`;
+  },
+};
+
+function kBadge(art){
+  const t=art.badge||''; if(!t) return '';
+  const w=t.length*6.2+12;
+  const col = art.illegal ? '#e74c3c' : art.accent;
+  return `<g transform="translate(8,132)">
+    <rect x="0" y="0" width="${w}" height="15" rx="7.5" fill="#0008" stroke="${col}" stroke-width="1"/>
+    <text x="${w/2}" y="11" font-family="'Barlow Condensed',sans-serif" font-size="10" font-weight="700" fill="${col}" text-anchor="middle" letter-spacing="0.5">${art.illegal?'🔴 ':''}${t}</text>
+  </g>`;
+}
+
+function cosmeticSVG(id){
+  const art=COSMETIC_ART[id]; if(!art) return '';
+  const drawer=KPART[art.type]||KPART.decals;
+  return `<svg viewBox="0 0 240 150" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">
+    ${kDefs(id, art.accent)}
+    <rect x="0" y="0" width="240" height="150" fill="url(#kglow${id})"/>
+    ${drawer(id,art)}
+    ${kBadge(art)}
+  </svg>`;
+}
+
 const CARD_ICONS = {
   Chassis:['🚗','🏎','🚙','🛻'],
   Engine:['⚙️','🔧','⚡','🔥'],
@@ -902,6 +3044,16 @@ function getCardType(card) {
     if (cards.some(c => c.id === card.id)) return type;
   }
   return 'Tuning';
+}
+
+function cardArtSVG(id){
+  if (typeof ENGINE_ART !== 'undefined' && ENGINE_ART[id]) return engineSVG(id);
+  if (typeof CHASSIS_ART !== 'undefined' && CHASSIS_ART[id]) return chassisSVG(id);
+  if (typeof TUNING_ART !== 'undefined' && TUNING_ART[id]) return tuningSVG(id);
+  if (typeof DRIVETRAIN_ART !== 'undefined' && DRIVETRAIN_ART[id]) return drivetrainSVG(id);
+  if (typeof HANDLING_ART !== 'undefined' && HANDLING_ART[id]) return handlingSVG(id);
+  if (typeof COSMETIC_ART !== 'undefined' && COSMETIC_ART[id]) return cosmeticSVG(id);
+  return null;
 }
 
 function renderCard(card, disabled, taken, cantAfford) {
@@ -922,10 +3074,15 @@ function renderCard(card, disabled, taken, cantAfford) {
   const costPct = Math.min(100, Math.round((card.cost / 40000) * 100));
 
   const clickHandler = disabled ? '' : `openModal(${card.id})`;
+  // Engine + chassis cards get bespoke SVG art; everything else keeps the emoji icon
+  const art = cardArtSVG(card.id);
+  const artBlock = art
+    ? `<div class="card-art">${art}</div>`
+    : `<div class="card-icon">${icon}</div>`;
 
   return `<div class="card${disabled?' taken':''}" onclick="${clickHandler}" data-id="${card.id}">
     ${legalBadge}
-    <div class="card-icon">${icon}</div>
+    ${artBlock}
     <div class="card-name">${card.name}</div>
     <div class="card-desc">${card.desc}</div>
     ${hpPill}
@@ -1363,20 +3520,18 @@ async function finaliseResults(data) {
   });
 }
 
-// ── RESULTS ───────────────────────────────────────────────────────────────────
+// ── RESULTS / PODIUM ─────────────────────────────────────────────────────────
 function renderResults(data) {
-  showScreen('results');
+  showScreen('podium-screen');
   if (!data.scores) return;
 
   const playerIds = data.playerOrder;
-  const content = document.getElementById('results-content');
-  const votePanels = document.getElementById('vote-panels');
-
-  // Calculate totals including votes
-  const scores = JSON.parse(JSON.stringify(data.scores));
   const looksVotes = data.looksVotes || {};
   const creativityVotes = data.creativityVotes || {};
+  const votesIn = allVotesCast(data);
 
+  // Calculate totals
+  const scores = JSON.parse(JSON.stringify(data.scores));
   playerIds.forEach(pid => {
     const looksCount = Object.values(looksVotes).filter(v => v === pid).length;
     const creativityCount = Object.values(creativityVotes).filter(v => v === pid).length;
@@ -1387,85 +3542,182 @@ function renderResults(data) {
       scores[pid].looksVote + scores[pid].creativityVote;
   });
 
+  if (!votesIn) {
+    // Reset podium so when votes do come in it starts fresh
+    state.podiumStarted = false;
+    // Show voting phase
+    renderPodiumVoting(data, scores, looksVotes, creativityVotes, playerIds);
+  } else {
+    // Show reveal phase
+    startPodiumReveal(data, scores, playerIds);
+  }
+}
+
+function renderPodiumVoting(data, scores, looksVotes, creativityVotes, playerIds) {
+  document.getElementById('podium-voting-phase').style.display = 'flex';
+  document.getElementById('podium-reveal-phase').style.display = 'none';
+
+  const myLooks = looksVotes[state.playerId];
+  const myCreativity = creativityVotes[state.playerId];
+  const others = playerIds.filter(pid => pid !== state.playerId);
+  const allVoted = myLooks && myCreativity;
+
+  const totalVoters = playerIds.length;
+  const looksVoted = Object.keys(looksVotes).length;
+  const creativityVoted = Object.keys(creativityVotes).length;
+  const votesReceived = Math.min(looksVoted, creativityVoted);
+
+  document.getElementById('pvote-panels').innerHTML = `
+    <div style="background:rgba(255,255,255,.03);border:1px solid var(--dark4);border-radius:var(--radius);padding:.75rem 1rem;text-align:center;margin-bottom:.25rem">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase">Players voted</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;color:var(--orange)">${votesReceived} <span style="color:var(--muted);font-size:1.2rem">/ ${totalVoters}</span></div>
+      ${votesReceived === totalVoters ? '<div style="color:var(--green);font-size:.85rem;font-weight:600">All votes in — revealing soon!</div>' : '<div style="color:var(--muted);font-size:.8rem">Waiting for everyone to vote...</div>'}
+    </div>
+
+    <div class="pvote-section">
+      <div class="pvote-title">🎨 Best Looks <span style="color:var(--muted);font-size:.8rem;font-weight:400">(+2 pts)</span></div>
+      ${others.map(pid => `
+        <div class="pvote-option ${myLooks===pid?'voted':''}" onclick="castVote('looks','${pid}')">
+          <span>${data.players[pid]?.name || pid}</span>
+          ${myLooks===pid?'<span>✓ Voted</span>':''}
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="pvote-section">
+      <div class="pvote-title">💡 Most Creative <span style="color:var(--muted);font-size:.8rem;font-weight:400">(+3 pts)</span></div>
+      ${others.map(pid => `
+        <div class="pvote-option ${myCreativity===pid?'voted':''}" onclick="castVote('creativity','${pid}')">
+          <span>${data.players[pid]?.name || pid}</span>
+          ${myCreativity===pid?'<span>✓ Voted</span>':''}
+        </div>
+      `).join('')}
+    </div>
+
+    ${allVoted ? `<div class="pvote-submitted">✓ Your votes are locked in — waiting for others</div>` : ''}
+  `;
+}
+
+// ── PODIUM REVEAL ─────────────────────────────────────────────────────────────
+let podiumState = { sorted: [], scores: {}, data: {}, revealIndex: 0, revealDone: false };
+
+function startPodiumReveal(data, scores, playerIds) {
+  if (state.podiumStarted) return; // guard: only init once per session
+  state.podiumStarted = true;
+
+  document.getElementById('podium-voting-phase').style.display = 'none';
+  document.getElementById('podium-reveal-phase').style.display = 'flex';
+
   const sorted = [...playerIds].sort((a,b) => scores[b].total - scores[a].total);
-  const votesIn = allVotesCast(data);
+  // Reveal order: worst → best (bottom to top drama)
+  const revealOrder = [...sorted].reverse();
 
-  if (votesIn && !state.confettiFired) { state.confettiFired = true; launchConfetti(); }
+  podiumState = { sorted, revealOrder, scores, data, revealIndex: 0, revealDone: false };
 
-  const winnerId = sorted[0];
-  const winnerName = data.players[winnerId]?.name || 'Winner';
-  const winnerScore = scores[winnerId].total.toFixed(2);
-
-  const winnerBanner = votesIn
-    ? `<div class="winner-banner">
-        <div style="font-size:2rem">🏆</div>
-        <div class="winner-name">${winnerName} wins!</div>
-        <div class="winner-score">${winnerScore} points</div>
-      </div>`
-    : `<div class="winner-banner" style="border-color:var(--muted);background:var(--dark2)">
-        <div style="font-size:1.5rem">🗳️</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:700;color:var(--muted)">Waiting for all votes...</div>
-        <div style="font-size:.85rem;color:var(--muted);margin-top:.25rem">Winner revealed when everyone votes</div>
-      </div>`;
-
-  content.innerHTML = winnerBanner + sorted.map((pid, i) => {
-    const s = scores[pid];
-    const pname = data.players[pid]?.name || pid;
-    const isWinner = votesIn && i === 0;
-    return `<div class="score-card ${isWinner?'winner':''}">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <div class="score-player">${isWinner?'<span class="crown">👑</span>':''}${pname}</div>
-        <div class="score-total">${votesIn ? s.total.toFixed(2) : '??.??'}</div>
+  // Build stage: all slots hidden to start
+  const stage = document.getElementById('podium-stage');
+  stage.innerHTML = sorted.map((pid, i) => {
+    const place = i + 1;
+    const placeLabel = place === 1 ? '🥇 1ST PLACE' : place === 2 ? '🥈 2ND PLACE' : place === 3 ? '🥉 3RD PLACE' : `${place}TH PLACE`;
+    return `<div class="podium-slot" id="pslot-${pid}" data-place="${place}">
+      <div class="podium-hidden" id="phidden-${pid}">
+        <div class="podium-hidden-dots"><div class="podium-hidden-dot"></div><div class="podium-hidden-dot"></div><div class="podium-hidden-dot"></div></div>
+        <div class="podium-hidden-label">${placeLabel}</div>
       </div>
-      <div class="score-breakdown">
-        <div class="score-line"><span>Build Points</span><span>${s.buildPts.toFixed(2)}</span></div>
-        <div class="score-line"><span>HP Bonus</span><span>+${s.hpBonus}</span></div>
-        <div class="score-line"><span>Money Bonus</span><span>+${s.moneyBonus}</span></div>
-        <div class="score-line"><span>Roadworthy</span><span>+${s.roadworthyBonus}</span></div>
-        <div class="score-line"><span>Performance Vote</span><span>+${s.perfVote}</span></div>
-        <div class="score-line"><span>Reliability Vote</span><span>+${s.relVote}</span></div>
-        <div class="score-line"><span>Looks Vote</span><span>+${s.looksVote}</span></div>
-        <div class="score-line"><span>Creativity Vote</span><span>+${s.creativityVote}</span></div>
-        <div class="score-line"><span>Budget Left</span><span>${fmt(s.budget)}</span></div>
-      </div>
+      <div class="podium-card place-${place}" id="pcard-${pid}" style="display:none"></div>
     </div>`;
   }).join('');
 
-  // Voting panels (only if voting still open)
-  if (data.votingOpen) {
-    const myLooksVote = looksVotes[state.playerId];
-    const myCreativityVote = creativityVotes[state.playerId];
+  updatePodiumControls();
+}
 
-    votePanels.innerHTML = `
-      <div class="vote-section">
-        <div class="vote-title">🎨 Looks Vote (+2)</div>
-        <div class="vote-options">
-          ${playerIds.filter(pid => pid !== state.playerId).map(pid => `
-            <div class="vote-option ${myLooksVote===pid?'voted':''}" onclick="castVote('looks','${pid}')">
-              ${data.players[pid]?.name || pid}
-              ${myLooksVote===pid?' ✓':''}
-            </div>
-          `).join('')}
-        </div>
-      </div>
-      <div class="vote-section">
-        <div class="vote-title">💡 Creativity Vote (+3)</div>
-        <div class="vote-options">
-          ${playerIds.filter(pid => pid !== state.playerId).map(pid => `
-            <div class="vote-option ${myCreativityVote===pid?'voted':''}" onclick="castVote('creativity','${pid}')">
-              ${data.players[pid]?.name || pid}
-              ${myCreativityVote===pid?' ✓':''}
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `;
+window.podiumNext = function() {
+  const ps = podiumState;
+  if (ps.revealDone) return;
 
-    if (myLooksVote && myCreativityVote) {
-      votePanels.innerHTML += `<div style="text-align:center;color:var(--green);margin-top:1rem;font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;font-weight:700">Votes submitted ✓</div>`;
-    }
+  const pid = ps.revealOrder[ps.revealIndex];
+  const place = ps.sorted.indexOf(pid) + 1;
+  const s = ps.scores[pid];
+  const pname = ps.data.players[pid]?.name || pid;
+
+  // Build badges
+  const badges = [];
+  if (s.hpBonus) badges.push(`<span class="podium-badge badge-hp">⚡ Most HP</span>`);
+  if (s.moneyBonus) badges.push(`<span class="podium-badge badge-money">💰 Most $$$</span>`);
+  if (s.roadworthyBonus) badges.push(`<span class="podium-badge badge-road">🟢 Roadworthy</span>`);
+  if (s.perfVote) badges.push(`<span class="podium-badge badge-perf">🏁 Performance</span>`);
+  if (s.relVote) badges.push(`<span class="podium-badge badge-rel">🔧 Reliability</span>`);
+  if (s.looksVote) badges.push(`<span class="podium-badge badge-looks">✨ Best Looks</span>`);
+  if (s.creativityVote) badges.push(`<span class="podium-badge badge-creative">💡 Creative</span>`);
+
+  const trophy = place === 1 ? '🏆' : place === 2 ? '🥈' : place === 3 ? '🥉' : '';
+  const placeWord = place === 1 ? '1ST PLACE' : place === 2 ? '2ND PLACE' : place === 3 ? '3RD PLACE' : `${place}TH PLACE`;
+
+  const cardEl = document.getElementById(`pcard-${pid}`);
+  cardEl.innerHTML = `
+    <div class="podium-place-num">${placeWord}</div>
+    <div class="podium-name-row">
+      ${trophy ? `<div class="podium-trophy">${trophy}</div>` : ''}
+      <div class="podium-player-name">${pname}</div>
+    </div>
+    <div class="podium-score-row">
+      <div class="podium-score-big">${s.total.toFixed(2)}</div>
+      <div class="podium-score-label">points</div>
+    </div>
+    <div class="podium-breakdown">
+      <div class="podium-break-line"><span>Build Pts</span><span>${s.buildPts.toFixed(2)}</span></div>
+      <div class="podium-break-line"><span>Budget Left</span><span>${fmt(s.budget)}</span></div>
+      <div class="podium-break-line"><span>Horsepower</span><span>${s.hp} HP</span></div>
+      <div class="podium-break-line"><span>Bonus Pts</span><span>+${(s.hpBonus+s.moneyBonus+s.roadworthyBonus+s.perfVote+s.relVote+s.looksVote+s.creativityVote)}</span></div>
+    </div>
+    ${badges.length ? `<div class="podium-badges">${badges.join('')}</div>` : ''}
+  `;
+
+  // Hide placeholder, show card with animation
+  document.getElementById(`phidden-${pid}`).style.display = 'none';
+  cardEl.style.display = 'block';
+  const slot = document.getElementById(`pslot-${pid}`);
+  slot.classList.add('revealed');
+
+  // Scroll to revealed card
+  setTimeout(() => slot.scrollIntoView({behavior:'smooth', block:'nearest'}), 100);
+
+  // If winner (place 1): confetti
+  if (place === 1 && !state.confettiFired) {
+    state.confettiFired = true;
+    setTimeout(() => launchConfetti(), 400);
+  }
+
+  ps.revealIndex++;
+
+  if (ps.revealIndex >= ps.revealOrder.length) {
+    ps.revealDone = true;
+  }
+
+  updatePodiumControls();
+};
+
+function updatePodiumControls() {
+  const ps = podiumState;
+  const btn = document.getElementById('podium-next-btn');
+  const prompt = document.getElementById('podium-prompt');
+  const remaining = ps.revealOrder ? ps.revealOrder.length - ps.revealIndex : 0;
+
+  if (ps.revealDone) {
+    btn.textContent = '🔁 Play Again';
+    btn.onclick = () => location.reload();
+    prompt.textContent = 'Game over — thanks for playing!';
+    return;
+  }
+  const nextPlace = ps.revealOrder ? ps.sorted.indexOf(ps.revealOrder[ps.revealIndex]) + 1 : 0;
+  const placeLabel = nextPlace === 1 ? '1st place' : nextPlace === 2 ? '2nd place' : nextPlace === 3 ? '3rd place' : `${nextPlace}th place`;
+
+  if (remaining === 1) {
+    btn.textContent = `🏆 Reveal Winner`;
+    prompt.textContent = 'The moment of truth...';
   } else {
-    votePanels.innerHTML = '';
+    btn.textContent = `▶ Reveal ${placeLabel}`;
+    prompt.textContent = `${remaining} place${remaining !== 1 ? 's' : ''} left to reveal`;
   }
 }
 
@@ -1474,6 +3726,14 @@ window.castVote = async function(type, targetPid) {
   updates[`${type}Votes/${state.playerId}`] = targetPid;
   await update(roomRef(), updates);
   toast('Vote cast!');
+  // Optimistic local re-render for snappy feedback
+  if (state.gameData) {
+    if (!state.gameData.looksVotes) state.gameData.looksVotes = {};
+    if (!state.gameData.creativityVotes) state.gameData.creativityVotes = {};
+    if (type === 'looks') state.gameData.looksVotes[state.playerId] = targetPid;
+    if (type === 'creativity') state.gameData.creativityVotes[state.playerId] = targetPid;
+    renderResults(state.gameData);
+  }
 };
 
 // ── SPLASH ────────────────────────────────────────────────────────────────
@@ -1567,6 +3827,15 @@ window.openModal = function(cardId) {
   document.getElementById('modal-name').textContent = card.name;
   document.getElementById('modal-cost').textContent = card.cost ? fmt(card.cost) : 'FREE';
   document.getElementById('modal-desc').textContent = card.desc;
+  const modalArt = document.getElementById('modal-art');
+  const mArt = cardArtSVG(card.id);
+  if (mArt) {
+    modalArt.innerHTML = mArt;
+    modalArt.style.display = 'block';
+  } else {
+    modalArt.style.display = 'none';
+    modalArt.innerHTML = '';
+  }
   document.getElementById('modal-legal').innerHTML = card.legal === false
     ? '<span style="color:var(--red)">🔴 Non-compliant — costs Roadworthy bonus</span>'
     : '<span style="color:var(--green)">🟢 Road legal</span>';
@@ -1860,6 +4129,7 @@ window.castVote = async function(type, targetPid) {
   if (!d.looksVotes.dev_bot) d.looksVotes.dev_bot = others[0];
   if (!d.creativityVotes.dev_bot) d.creativityVotes.dev_bot = others[0];
   toast('Vote cast!');
+  state.podiumStarted = false; // allow reveal to init fresh
   renderResults(d);
 };
 
